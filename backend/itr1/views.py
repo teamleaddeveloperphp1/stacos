@@ -36,6 +36,7 @@ from itr1.forms import (
     Schedule80GGAFormSet,
     Schedule80GGCFormSet,
     TaxLiabilityForm,
+    VerificationForm,
     TcsFormSet,
     Tds1FormSet,
     Tds2FormSet,
@@ -480,6 +481,12 @@ def _gti_initial(model):
     properties = [
         {
             'property_type': p['propertyType'],
+            'property_owner': p.get('propertyOwner', ''),
+            'flat_door_building': p.get('address', {}).get('flatDoorBuilding', ''),
+            'area_locality': p.get('address', {}).get('areaLocality', ''),
+            'town_city_district': p.get('address', {}).get('townCityDistrict', ''),
+            'state_code': p.get('address', {}).get('stateCode', ''),
+            'pin_code': p.get('address', {}).get('pinCode', ''),
             'co_owned': p['coOwned'],
             'assessee_share_percent': p['assesseeSharePercent'],
             'gross_rent': p['grossRent'],
@@ -539,10 +546,19 @@ def _apply_gti_forms(model, salary_cleaned, allowance_formset, property_formset,
         if not cleaned.get('property_type'):
             continue
         prior = existing_properties[i] if i < len(existing_properties) else {}
+        address = prior.get('address') or blank_address()
+        address = {
+            **address,
+            'flatDoorBuilding': cleaned.get('flat_door_building') or address.get('flatDoorBuilding', ''),
+            'areaLocality': cleaned.get('area_locality') or address.get('areaLocality', ''),
+            'townCityDistrict': cleaned.get('town_city_district') or address.get('townCityDistrict', ''),
+            'stateCode': cleaned.get('state_code') or address.get('stateCode', ''),
+            'pinCode': cleaned.get('pin_code') or address.get('pinCode', ''),
+        }
         properties.append({
             'id': prior.get('id') or f'hp-{i + 1}',
-            'address': prior.get('address') or blank_address(),
-            'propertyOwner': prior.get('propertyOwner', ''),
+            'address': address,
+            'propertyOwner': cleaned.get('property_owner') or prior.get('propertyOwner', ''),
             'propertyOwnerOther': prior.get('propertyOwnerOther', ''),
             'propertyType': cleaned['property_type'],
             'coOwned': cleaned.get('co_owned') or 'N',
@@ -1551,6 +1567,7 @@ def tax_summary(request, return_id):
 def validation(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
+    verification_form = None
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1573,6 +1590,22 @@ def validation(request, return_id):
                 payload={'acknowledgedRuleIds': acknowledged_ids},
             )
             return redirect('itr1:validation', return_id=return_id)
+
+        if action == 'save_verification':
+            verification_form = VerificationForm(request.POST)
+            if verification_form.is_valid():
+                before = copy.deepcopy(model)
+                v = model['verification']
+                v['assesseeVerName'] = verification_form.cleaned_data['assessee_ver_name']
+                v['fatherName'] = verification_form.cleaned_data['father_name']
+                v['assesseeVerPan'] = verification_form.cleaned_data['assessee_ver_pan'].upper()
+                v['capacity'] = verification_form.cleaned_data['capacity']
+                v['place'] = verification_form.cleaned_data['place']
+                _log_field_changes(tax_return, before, model, actor)
+                tax_return.bump_version()
+                tax_return.save()
+                return redirect('itr1:validation', return_id=return_id)
+            # else fall through to the bottom render with the bound (invalid) form
 
         if action == 'download':
             computed = compute(model)
@@ -1604,6 +1637,16 @@ def validation(request, return_id):
             response['Content-Disposition'] = f'attachment; filename="ITR1_validation_report_{return_id}.pdf"'
             return response
 
+    if verification_form is None:
+        v = model['verification']
+        verification_form = VerificationForm(initial={
+            'assessee_ver_name': v['assesseeVerName'],
+            'father_name': v['fatherName'],
+            'assessee_ver_pan': v['assesseeVerPan'],
+            'capacity': v['capacity'],
+            'place': v['place'],
+        })
+
     computed = compute(model)
     result = generate_json(model, {'computed': computed})
     report = result.validation
@@ -1621,6 +1664,7 @@ def validation(request, return_id):
         'computed': computed,
         'report': report,
         'generation': result,
+        'verification_form': verification_form,
         'pending_ack_ids': set(result.pendingAcknowledgements),
         'downloadable': result.downloadable and not result.pendingAcknowledgements,
         **_chrome_context(tax_return, computed),

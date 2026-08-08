@@ -214,6 +214,14 @@ PROPERTY_TYPE_CHOICES = [
     ('D', 'Deemed Let Out'),
 ]
 
+PROPERTY_OWNER_CHOICES = [
+    ('', '— Select —'),
+    ('SE', 'Self'),
+    ('MI', 'Minor'),
+    ('SP', 'Spouse'),
+    ('OT', 'Others'),
+]
+
 OTHER_SOURCE_NATURE_CHOICES = [
     ('', '— Select —'),
     ('SAV', 'Interest from savings account'),
@@ -305,6 +313,12 @@ ExemptAllowanceFormSet = forms.formset_factory(ExemptAllowanceForm, extra=1, can
 
 class HousePropertyForm(forms.Form):
     property_type = forms.ChoiceField(label='Type of house property', choices=PROPERTY_TYPE_CHOICES, required=False)
+    property_owner = forms.ChoiceField(label='Property owner', choices=PROPERTY_OWNER_CHOICES, required=False)
+    flat_door_building = forms.CharField(label='Flat/Door/Building', max_length=120, required=False)
+    area_locality = forms.CharField(label='Area/Locality', max_length=120, required=False)
+    town_city_district = forms.CharField(label='Town/City/District', max_length=120, required=False)
+    state_code = forms.CharField(label='State code', max_length=2, required=False)
+    pin_code = forms.CharField(label='PIN code', max_length=6, required=False)
     co_owned = forms.ChoiceField(label='Is property co-owned?', choices=YES_NO_CHOICES, initial='N', required=False)
     assessee_share_percent = forms.IntegerField(
         label="Assessee's share %", min_value=0, max_value=100, required=False, initial=100,
@@ -716,3 +730,14 @@ class TaxLiabilityForm(forms.Form):
     fee234FOverride = forms.IntegerField(
         label='Fee u/s 234F override', min_value=0, required=False,
     )
+
+
+class VerificationForm(forms.Form):
+    """The e-filing portal's mandatory declaration -- schema `Verification.Declaration`
+    (§11.2). Not a numbered screen in §3.1, but the JSON cannot be generated
+    without it, so it lives on the Validation & JSON screen as the final step."""
+    assessee_ver_name = forms.CharField(label='Name of person verifying', max_length=127)
+    father_name = forms.CharField(label="Father's name", max_length=125)
+    assessee_ver_pan = forms.CharField(label='PAN of person verifying', max_length=10)
+    capacity = forms.ChoiceField(label='Capacity', choices=CAPACITY_CHOICES, initial='S')
+    place = forms.CharField(label='Place', max_length=50)

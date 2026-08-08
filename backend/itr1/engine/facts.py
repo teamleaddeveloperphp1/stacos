@@ -610,8 +610,8 @@ def _schedule_80d_has_content(m):
     s = m['deductions']['schedule80D']
     blocks = [s['selfFamily'], s['selfFamilySenior'], s['parents'], s['parentsSenior']]
     return bool(
-        s['selfFamilySeniorFlag']
-        or s['parentsSeniorFlag']
+        s['selfFamilySeniorFlag'] == 'Y'
+        or s['parentsSeniorFlag'] == 'Y'
         or any(
             n(b['healthInsurancePremium']) > 0
             or n(b['preventiveHealthCheckup']) > 0
