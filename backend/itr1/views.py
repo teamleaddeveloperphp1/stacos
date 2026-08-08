@@ -111,7 +111,24 @@ def set_locale(request, locale):
 def return_list(request):
     user = _current_user(request)
     returns = TaxReturn.objects.filter(owner=user).order_by('-updated_at')
-    return render(request, 'itr1/return_list.html', {'returns': returns})
+
+    cards = []
+    for r in returns:
+        chrome = _chrome_context(r)
+        statuses = (r.data.get('screenStatus') or {}).values()
+        confirmed_count = sum(1 for s in statuses if str(s).lower() == 'confirmed')
+        cards.append({
+            'obj': r,
+            'taxpayer_name': chrome['taxpayer_name'],
+            'taxpayer_pan': chrome['taxpayer_pan'],
+            'regime': chrome['regime'],
+            'ticker': chrome['ticker'],
+            'ticker_class': chrome['ticker_class'],
+            'confirmed_count': confirmed_count,
+            'screen_total': 7,
+        })
+
+    return render(request, 'itr1/return_list.html', {'cards': cards})
 
 
 def return_create(request):

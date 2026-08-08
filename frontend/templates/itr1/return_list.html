@@ -4,26 +4,47 @@
   <meta charset="utf-8">
   <title>Your ITR-1 Returns · stacos.ai</title>
   <link rel="stylesheet" href="{% static 'itr1/css/main.css' %}">
-  <style>
-    body { display: block; padding: 2rem; max-width: 760px; margin: 0 auto; }
-  </style>
 </head>
-<body>
-  <h1>ITR-1 &middot; AY 2026-27</h1>
-  <p><a href="{% url 'itr1:return_create' %}">+ Start a new return</a></p>
-  <table>
-    <thead><tr><th>#</th><th>PAN</th><th>Updated</th></tr></thead>
-    <tbody>
-      {% for r in returns %}
-      <tr>
-        <td><a href="{% url 'itr1:personal_info' r.pk %}">{{ r.pk }}</a></td>
-        <td>{{ r.pan|default:"—" }}</td>
-        <td>{{ r.updated_at }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="3">No returns yet.</td></tr>
+<body class="dashboard-body">
+  <main class="dashboard">
+    <header class="dashboard-header">
+      <div>
+        <p class="breadcrumb">Dashboard &rsaquo; Returns</p>
+        <h1>ITR-1 &middot; AY 2026-27</h1>
+        <p class="dashboard-sub">Prepare, validate and generate a CBDT-ready ITR-1 JSON.</p>
+      </div>
+      <a class="btn btn-primary" href="{% url 'itr1:return_create' %}">+ Start a new return</a>
+    </header>
+
+    {% if cards %}
+    <div class="dashboard-grid">
+      {% for card in cards %}
+      <a class="return-card" href="{% url 'itr1:personal_info' card.obj.pk %}">
+        <div class="return-card-top">
+          <span class="return-card-name">{{ card.taxpayer_name }}</span>
+          <span class="regime-badge regime-{{ card.regime|lower }}">{% if card.regime == 'OLD' %}OLD REGIME{% else %}NEW REGIME{% endif %}</span>
+        </div>
+        <div class="return-card-pan">PAN {{ card.taxpayer_pan }} &middot; #{{ card.obj.pk }}</div>
+
+        <div class="return-card-progress">
+          <div class="progress-track"><div class="progress-fill" style="width: {% widthratio card.confirmed_count card.screen_total 100 %}%"></div></div>
+          <span>{{ card.confirmed_count }} of {{ card.screen_total }} screens confirmed</span>
+        </div>
+
+        <div class="return-card-bottom">
+          <span class="ticker ticker-{{ card.ticker_class }}">{{ card.ticker }}</span>
+          <span class="return-card-updated">Updated {{ card.obj.updated_at|date:"d M, H:i" }}</span>
+        </div>
+      </a>
       {% endfor %}
-    </tbody>
-  </table>
+    </div>
+    {% else %}
+    <div class="dashboard-empty">
+      <h2>No returns yet</h2>
+      <p>Start your first ITR-1 return for AY 2026-27 &mdash; seven guided screens, full validation and a CBDT-ready JSON at the end.</p>
+      <a class="btn btn-primary" href="{% url 'itr1:return_create' %}">+ Start a new return</a>
+    </div>
+    {% endif %}
+  </main>
 </body>
 </html>
