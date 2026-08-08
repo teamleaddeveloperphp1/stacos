@@ -1,0 +1,14 @@
+{% if trace.lines %}
+<details class="trace-drawer">
+  <summary>Show computation — {{ trace.title }}</summary>
+  <table class="trace-table">
+    {% for line in trace.lines %}
+      <tr{% if line.result %} class="trace-result"{% endif %}>
+        <td>{{ line.label }}</td>
+        <td class="trace-detail">{{ line.detail|default:"" }}</td>
+        <td class="trace-amount">{% if line.amount is not None %}&#8377;{{ line.amount }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</details>
+{% endif %}

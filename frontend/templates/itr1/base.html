@@ -1,0 +1,126 @@
+{% load static %}<!DOCTYPE html>
+<html lang="{{ current_locale|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}{{ t.app_name }}{% endblock %} · stacos.ai</title>
+  <link rel="stylesheet" href="{% static 'itr1/css/main.css' %}">
+</head>
+<body>
+  <nav class="itr1-menu">
+    <h2>{{ t.app_name }} &middot; {{ t.ay_label }} {{ ay|default:"2026-27" }}</h2>
+    {% if taxpayer_name %}
+      <div class="menu-taxpayer">{{ taxpayer_name }} &middot; {{ taxpayer_pan }}</div>
+    {% endif %}
+    <ul>
+      {% for item in menu_items %}
+      <li>
+        <a href="{{ item.url }}">
+          <span>{{ item.number }}. {{ item.label }}</span>
+          <span class="chip chip-{{ item.status }}">{{ item.status_label }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="lang-switcher">
+      {{ t.language }}:
+      <a href="{% url 'itr1:set_locale' 'en' %}"{% if current_locale == 'en' %} class="lang-active"{% endif %}>{{ t.language_english }}</a>
+      &middot;
+      <a href="{% url 'itr1:set_locale' 'hi' %}"{% if current_locale == 'hi' %} class="lang-active"{% endif %}>{{ t.language_hindi }}</a>
+    </div>
+  </nav>
+  <main>
+    <p class="breadcrumb">{{ t.dashboard }} &rsaquo; <a href="{% url 'itr1:return_list' %}">{{ t.returns }}</a> &rsaquo; {{ t.app_name }} {{ t.ay_label }} {{ ay|default:"2026-27" }} &rsaquo; {% block breadcrumb_page %}{{ page_title }}{% endblock %}</p>
+
+    <header class="itr1-header">
+      {% block header %}
+        <div class="header-row">
+          <h1>{% block page_title %}{{ t.app_name }}{% endblock %}</h1>
+          {% if regime %}<span class="regime-badge regime-{{ regime|lower }}">{% if regime == 'OLD' %}{{ t.regime_old }}{% else %}{{ t.regime_new }}{% endif %}</span>{% endif %}
+        </div>
+        {% if taxpayer_name %}
+          <div class="header-meta">
+            <span>{{ taxpayer_name }}</span>
+            <span>{{ t.pan_label }} {{ taxpayer_pan }}</span>
+            <span>{{ t.ay_label }} {{ ay|default:"2026-27" }}</span>
+            <span>{{ filing_section_label }}</span>
+            <span class="ticker ticker-{{ ticker_class }}">{{ ticker }}</span>
+          </div>
+        {% endif %}
+      {% endblock %}
+    </header>
+
+    {% block content %}{% endblock %}
+
+    {% if rule_set_version %}
+      <footer class="itr1-footer">
+        {{ t.rule_set_label }} {{ rule_set_version }} &middot; {{ t.schema_label }} {{ schema_version }} &middot; {{ t.constants_label }} {{ constants_version }}
+        &middot; {{ t.draft_label }} v{{ draft_version }}, {{ t.saved_label }} {{ draft_updated_at|date:"H:i" }}
+      </footer>
+    {% endif %}
+  </main>
+  <script>
+    // §3.2 deep links: `/return/{id}/screen#anchor` scrolls to, highlights
+    // and focuses the target section so a validation finding's "Go to
+    // field" link actually lands the preparer on the right control.
+    document.addEventListener('DOMContentLoaded', function () {
+      if (!location.hash) return;
+      var target = document.getElementById(location.hash.slice(1));
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.add('deep-link-target');
+      var firstField = target.querySelector('input, select, textarea');
+      if (firstField) firstField.focus({ preventScroll: true });
+      setTimeout(function () { target.classList.remove('deep-link-target'); }, 4000);
+    });
+
+    // §3.3 autosave: every 20 seconds and on every blur. Posts the current
+    // screen's form in the background (action=save, never "confirm") and
+    // shows a quiet "Draft saved HH:MM:SS" status instead of navigating away.
+    (function () {
+      // Scope to a real data-entry screen only (identified by the `_version`
+      // optimistic-locking field) -- Tax Summary/Validation's action forms
+      // (proceed/acknowledge/download) must never be autosaved over.
+      var form = null;
+      var candidates = document.querySelectorAll('main form');
+      for (var i = 0; i < candidates.length; i++) {
+        if (candidates[i].querySelector('input[name="_version"]')) { form = candidates[i]; break; }
+      }
+      if (!form) return;
+      var status = document.createElement('span');
+      status.className = 'autosave-status';
+      var actionsEl = form.querySelector('.actions');
+      (actionsEl || form).appendChild(status);
+
+      function autosave() {
+        var data = new FormData(form);
+        data.set('action', 'save');
+        fetch(form.action || location.href, {
+          method: 'POST',
+          body: data,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        }).then(function (resp) {
+          if (resp.status === 409) {
+            return resp.json().then(function (body) {
+              status.textContent = body.conflict || 'Edit conflict — reload this page.';
+              status.classList.add('autosave-conflict');
+            });
+          }
+          if (!resp.ok) { status.textContent = 'Autosave failed — Save manually.'; return; }
+          return resp.json().then(function (body) {
+            status.classList.remove('autosave-conflict');
+            status.textContent = 'Draft saved ' + body.savedAt;
+          });
+        }).catch(function () { status.textContent = 'Autosave failed — check your connection.'; });
+      }
+
+      setInterval(autosave, 20000);
+      var blurTimer = null;
+      form.addEventListener('blur', function (e) {
+        if (!(e.target.matches('input, select, textarea'))) return;
+        clearTimeout(blurTimer);
+        blurTimer = setTimeout(autosave, 400);
+      }, true);
+    })();
+  </script>
+</body>
+</html>

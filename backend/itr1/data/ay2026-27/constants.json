@@ -1,0 +1,304 @@
+{
+  "version": "constants-ay2026-27-1.0.0",
+  "ay": "2026-27",
+  "financialYear": "2025-26",
+  "fyStart": "2025-04-01",
+  "fyEnd": "2026-03-31",
+  "ayStart": "2026-04-01",
+
+  "dueDates": {
+    "us139_1": "2026-07-31",
+    "revisedReturnFeeCutoff": "2026-12-31",
+    "belatedRevisedLastDate": "2026-12-31"
+  },
+
+  "rounding": {
+    "totalIncomeNearest": 10,
+    "taxNearest": 10,
+    "refundNearest": 10,
+    "minimumRefundIssued": 100
+  },
+
+  "cessRate": 0.04,
+
+  "regimes": {
+    "NEW": {
+      "label": "NEW REGIME",
+      "slabs": [
+        { "upTo": 400000, "rate": 0 },
+        { "upTo": 800000, "rate": 0.05 },
+        { "upTo": 1200000, "rate": 0.1 },
+        { "upTo": 1600000, "rate": 0.15 },
+        { "upTo": 2000000, "rate": 0.2 },
+        { "upTo": 2400000, "rate": 0.25 },
+        { "upTo": null, "rate": 0.3 }
+      ],
+      "seniorSlabOverrides": {},
+      "basicExemptionLimit": 400000,
+      "rebate87A": {
+        "maxRebate": 60000,
+        "incomeCeiling": 1200000,
+        "marginalRelief": true,
+        "excludeSpecialRateIncome": true,
+        "nilAboveTotalIncome": 1270590
+      },
+      "standardDeduction16ia": 75000
+    },
+    "OLD": {
+      "label": "OLD REGIME",
+      "slabs": [
+        { "upTo": 250000, "rate": 0 },
+        { "upTo": 500000, "rate": 0.05 },
+        { "upTo": 1000000, "rate": 0.2 },
+        { "upTo": null, "rate": 0.3 }
+      ],
+      "seniorSlabOverrides": {
+        "senior": { "minAge": 60, "firstSlabUpTo": 300000 },
+        "superSenior": { "minAge": 80, "firstSlabUpTo": 500000 }
+      },
+      "basicExemptionLimits": {
+        "default": 250000,
+        "senior": 300000,
+        "superSenior": 500000
+      },
+      "rebate87A": {
+        "maxRebate": 12500,
+        "incomeCeiling": 500000,
+        "marginalRelief": false,
+        "excludeSpecialRateIncome": false
+      },
+      "standardDeduction16ia": 50000
+    }
+  },
+
+  "ltcg112A": {
+    "rate": 0.125,
+    "exemptThreshold": 125000,
+    "itr1MaxAllowed": 125000
+  },
+
+  "itr1Eligibility": {
+    "maxTotalIncomeExclLTCG": 5000000,
+    "maxAgriExemptIncome": 5000,
+    "maxLTCG112A": 125000
+  },
+
+  "salary": {
+    "entertainmentAllowance16ii": {
+      "flatCap": 5000,
+      "fractionOfSalary": 0.2,
+      "eligibleEmployerCategories": ["CGOV", "SGOV", "PSU"]
+    },
+    "professionalTax16iii": { "cap": 5000 },
+    "exemptAllowanceCaps": {
+      "gratuity10_10": {
+        "cap20L": 2000000,
+        "cap25L": 2500000,
+        "cap20LCategories": ["PSU", "PEPS", "PEO", "OTH"],
+        "cap25LCategories": ["CGOV", "SGOV", "PE", "PESG"]
+      },
+      "leaveEncash10_10AA": { "advisoryCap": 2500000, "blockAboveForNonGovt": 2500000, "govtCategories": ["CGOV", "SGOV", "PE", "PESG"] },
+      "comp10_10B_i": { "cap": 500000 },
+      "comp10_10B_ii": { "cap": 500000 },
+      "vrs10_10C": { "cap": 500000 },
+      "hra10_13A": { "fractionOfSalary17_1": 0.3333333333333333 },
+      "allw10_14_ii": { "handicappedTransportNewRegimeCap": 38400 }
+    },
+    "mutuallyExclusiveAllowances": [["10(10B)(i)", "10(10B)(ii)", "10(10C)"]],
+    "allowance10_10BDisallowedCategories": ["CGOV", "SGOV", "PE", "PESG", "PEPS", "PEO"],
+    "judgeExemptIncomeAllowedCategories": ["CGOV", "SGOV"],
+    "newRegimeZeroAllowances": ["10(5)", "10(13A)", "10(14)(i)", "10(14)(ii)", "10(17)", "EIC"],
+    "oldRegimeZeroAllowances": ["10(14)(i)(115BAC)", "10(14)(ii)(115BAC)"]
+  },
+
+  "houseProperty": {
+    "standardDeductionRate": 0.3,
+    "selfOccupiedInterestCapOld": 200000,
+    "selfOccupiedInterestCapNew": 0,
+    "maxSetOffLossAgainstOtherHeads": 200000,
+    "maxProperties": 2
+  },
+
+  "otherSources": {
+    "deduction57iia": {
+      "OLD": { "fractionOfFamilyPension": 0.3333333333333333, "cap": 15000, "roundingTolerance": 1 },
+      "NEW": { "fractionOfFamilyPension": 0.3333333333333333, "cap": 25000, "roundingTolerance": 1 }
+    }
+  },
+
+  "hra10_13A": {
+    "metroFraction": 0.5,
+    "nonMetroFraction": 0.4,
+    "rentLessPercentOfSalary": 0.1,
+    "placeOfWorkEnum": { "metro": "1", "nonMetro": "2" }
+  },
+
+  "chapterVIA": {
+    "aggregate80C_80CCC_80CCD1": 150000,
+    "sections": {
+      "80C": { "modelKey": "s80C", "schemaKey": "Section80C", "cap": 150000, "aggregateGroup": "80C_GROUP", "newRegimeAllowed": false },
+      "80CCC": { "modelKey": "s80CCC", "schemaKey": "Section80CCC", "cap": 150000, "aggregateGroup": "80C_GROUP", "newRegimeAllowed": false },
+      "80CCD1": { "modelKey": "s80CCD1", "schemaKey": "Section80CCDEmployeeOrSE", "cap": 150000, "aggregateGroup": "80C_GROUP", "newRegimeAllowed": false },
+      "80CCD1B": { "modelKey": "s80CCD1B", "schemaKey": "Section80CCD1B", "cap": 50000, "newRegimeAllowed": false },
+      "80CCD2": { "modelKey": "s80CCD2", "schemaKey": "Section80CCDEmployer", "cap": null, "newRegimeAllowed": true },
+      "80CCH": { "modelKey": "s80CCH", "schemaKey": "AnyOthSec80CCH", "cap": 288000, "newRegimeAllowed": true },
+      "80D": { "modelKey": "s80D", "schemaKey": "Section80D", "cap": 100000, "newRegimeAllowed": false },
+      "80DD": { "modelKey": "s80DD", "schemaKey": "Section80DD", "cap": 125000, "newRegimeAllowed": false },
+      "80DDB": { "modelKey": "s80DDB", "schemaKey": "Section80DDB", "cap": 100000, "newRegimeAllowed": false },
+      "80E": { "modelKey": "s80E", "schemaKey": "Section80E", "cap": null, "newRegimeAllowed": false },
+      "80EE": { "modelKey": "s80EE", "schemaKey": "Section80EE", "cap": 50000, "newRegimeAllowed": false },
+      "80EEA": { "modelKey": "s80EEA", "schemaKey": "Section80EEA", "cap": 150000, "newRegimeAllowed": false },
+      "80EEB": { "modelKey": "s80EEB", "schemaKey": "Section80EEB", "cap": 150000, "newRegimeAllowed": false },
+      "80G": { "modelKey": "s80G", "schemaKey": "Section80G", "cap": null, "newRegimeAllowed": false },
+      "80GG": { "modelKey": "s80GG", "schemaKey": "Section80GG", "cap": 60000, "newRegimeAllowed": false },
+      "80GGA": { "modelKey": "s80GGA", "schemaKey": "Section80GGA", "cap": null, "newRegimeAllowed": false },
+      "80GGC": { "modelKey": "s80GGC", "schemaKey": "Section80GGC", "cap": null, "newRegimeAllowed": false },
+      "80TTA": { "modelKey": "s80TTA", "schemaKey": "Section80TTA", "cap": 10000, "newRegimeAllowed": false },
+      "80TTB": { "modelKey": "s80TTB", "schemaKey": "Section80TTB", "cap": 50000, "newRegimeAllowed": false },
+      "80U": { "modelKey": "s80U", "schemaKey": "Section80U", "cap": 125000, "newRegimeAllowed": false }
+    },
+    "s80CCD1": {
+      "pensionerOrNACategories": ["PE", "PESG", "PEPS", "PEO", "NA"],
+      "fractionOfGTIForPensioners": 0.2,
+      "fractionOfSalaryForOthers": 0.1
+    },
+    "s80CCD1B": { "cap": 50000 },
+    "s80CCD2": {
+      "oldRegime": {
+        "govtCategories": ["CGOV", "SGOV"],
+        "govtFraction": 0.14,
+        "otherFraction": 0.1
+      },
+      "newRegime": {
+        "allowedCategories": ["CGOV", "SGOV", "PSU", "OTH"],
+        "fraction": 0.14
+      },
+      "blockedCategories": ["PE", "PESG", "PEPS", "PEO", "NA"]
+    },
+    "s80CCH": {
+      "allowedEmployerCategories": ["CGOV"],
+      "fractionOfSalary17_1": 0.462,
+      "minAgeAtJoining": 17,
+      "maxAgeAtJoining": 27
+    },
+    "s80D": {
+      "selfFamilyCap": 25000,
+      "selfFamilySeniorCap": 50000,
+      "parentsCap": 25000,
+      "parentsSeniorCap": 50000,
+      "totalCap": 100000,
+      "preventiveHealthCheckupCap": 5000
+    },
+    "s80DD": { "disabilityAmount": 75000, "severeDisabilityAmount": 125000 },
+    "s80U": { "disabilityAmount": 75000, "severeDisabilityAmount": 125000 },
+    "s80DDB": { "cap": 100000, "selfOrDependentCap": 40000 },
+    "s80EE": {
+      "cap": 50000,
+      "sanctionFrom": "2016-04-01",
+      "sanctionTo": "2017-03-31",
+      "maxLoanAmount": 3500000
+    },
+    "s80EEA": {
+      "cap": 150000,
+      "sanctionFrom": "2019-04-01",
+      "sanctionTo": "2022-03-31",
+      "maxStampDutyValue": 4500000
+    },
+    "s80EEB": {
+      "cap": 150000,
+      "sanctionFrom": "2019-04-01",
+      "sanctionTo": "2023-03-31"
+    },
+    "s80G": {
+      "cashDonationCap": 2000,
+      "blocks": ["Don100Percent", "Don50PercentNoApprReqd", "Don100PercentApprReqd", "Don50PercentApprReqd"]
+    },
+    "s80GGA": { "cashDonationCap": 2000 },
+    "s80GGC": {
+      "contributionFrom": "2025-04-01",
+      "contributionTo": "2026-03-31",
+      "cashModeEligible": false
+    },
+    "s80GG": {
+      "flatCap": 60000,
+      "fractionOfTotalIncomeExclLTCG": 0.25
+    },
+    "s80TTA": { "cap": 10000, "seniorCitizenDOBOnOrBefore": "1966-04-01" },
+    "s80TTB": { "cap": 50000, "dobNotBefore": "1966-04-02" }
+  },
+
+  "seniorCitizen": {
+    "a13SeniorDOBOnOrBefore": "1966-04-01",
+    "a15DOBNotBefore": "1966-04-02",
+    "superSeniorMinAge": 80,
+    "seniorMinAge": 60,
+    "ageReferenceDate": "2026-03-31"
+  },
+
+  "interestAndFee": {
+    "s234A": { "monthlyRate": 0.01 },
+    "s234B": { "monthlyRate": 0.01, "advanceTaxThresholdFraction": 0.9, "startDate": "2026-04-01" },
+    "s234C": {
+      "monthlyRate": 0.01,
+      "installments": [
+        { "label": "Q1", "dueDate": "2025-06-15", "requiredFraction": 0.15, "safeHarbourFraction": 0.12, "months": 3 },
+        { "label": "Q2", "dueDate": "2025-09-15", "requiredFraction": 0.45, "safeHarbourFraction": 0.36, "months": 3 },
+        { "label": "Q3", "dueDate": "2025-12-15", "requiredFraction": 0.75, "safeHarbourFraction": 0.75, "months": 3 },
+        { "label": "Q4", "dueDate": "2026-03-15", "requiredFraction": 1.0, "safeHarbourFraction": 1.0, "months": 1 }
+      ],
+      "minimumAssessedTax": 10000,
+      "dividendProvisoApplies": true
+    },
+    "s234F": {
+      "standardFee": 5000,
+      "reducedFee": 1000,
+      "reducedFeeIncomeCeiling": 500000
+    },
+    "s234I": {
+      "appliesToSection": "139(5)",
+      "afterDate": "2026-12-31",
+      "feeUpTo5Lakh": 1000,
+      "feeAbove5Lakh": 5000,
+      "incomeThreshold": 500000
+    }
+  },
+
+  "advanceTaxClassification": {
+    "advanceTaxFrom": "2025-04-01",
+    "advanceTaxTo": "2026-03-31",
+    "selfAssessmentAfter": "2026-03-31"
+  },
+
+  "quarterlyBreakup": [
+    { "key": "Upto15Of6", "label": "Upto 15/06/2025", "from": "2025-04-01", "to": "2025-06-15" },
+    { "key": "Upto15Of9", "label": "16/06/2025 to 15/09/2025", "from": "2025-06-16", "to": "2025-09-15" },
+    { "key": "Up16Of9To15Of12", "label": "16/09/2025 to 15/12/2025", "from": "2025-09-16", "to": "2025-12-15" },
+    { "key": "Up16Of12To15Of3", "label": "16/12/2025 to 15/03/2026", "from": "2025-12-16", "to": "2026-03-15" },
+    { "key": "Up16Of3To31Of3", "label": "16/03/2026 to 31/03/2026", "from": "2026-03-16", "to": "2026-03-31" }
+  ],
+
+  "tdsAdvisorySections": {
+    "B3_B4": ["94B", "4BB", "94BA", "4-IA", "4IA", "4IC", "4LA", "94S", "94B-P", "94S-P", "94BA-P"],
+    "B5_B6": ["94E", "4LB", "4LC1", "4LC2", "4LC3", "LBA1", "LBA2", "LBA3", "195", "96A", "96B", "96C", "96D", "96DA"],
+    "B7_B8": ["94Q", "94C", "94R", "94R-P"],
+    "salarySectionsBlockedInTDS2And3": ["92A", "92B", "92C"]
+  },
+
+  "creationInfo": {
+    "swVersionNo": "1.0",
+    "swCreatedBy": "SW00000000",
+    "jsonCreatedBy": "SW00000000",
+    "intermediaryCity": "Delhi",
+    "digest": "-"
+  },
+
+  "formMeta": {
+    "formName": "ITR-1",
+    "description": "ITR-1 (Sahaj) for Individuals having total income upto Rs.50 lakh",
+    "assessmentYear": "2026",
+    "schemaVer": "Ver1.0",
+    "formVer": "Ver1.0",
+    "schemaFileVersion": "V1.1",
+    "schemaFileReleaseDate": "2026-06-30"
+  }
+}
