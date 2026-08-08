@@ -1,0 +1,103 @@
+{% extends "itr1/base.html" %}
+
+{% block title %}{{ t.screen_tax_liability }}{% endblock %}
+{% block page_title %}{{ t.screen_tax_liability }}{% endblock %}
+
+{% block content %}
+{% if conflict_message %}
+  <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+
+<div class="tp-summary">
+  Total Tax, Fee and Interest (D11): <strong>&#8377;{{ total_tax_fee_interest_display }}</strong>
+</div>
+
+<fieldset id="c2">
+  <legend>Computation of Tax Payable (read-only)</legend>
+  <div class="computed-line"><span>D1. Tax payable on total income</span><span class="val">&#8377;{{ tax.taxPayableOnTotalIncome }}</span></div>
+  <div class="computed-line"><span>D2. Rebate u/s 87A</span><span class="val">&#8377;{{ tax.rebate87A }}</span></div>
+  <div class="computed-line"><span>D3. Tax payable after rebate</span><span class="val">&#8377;{{ tax.taxPayableAfterRebate }}</span></div>
+  <div class="computed-line"><span>D4. Health &amp; education cess</span><span class="val">&#8377;{{ tax.educationCess }}</span></div>
+  <div class="computed-line"><span>D5. Total tax and cess</span><span class="val">&#8377;{{ tax.totalTaxAndCess }}</span></div>
+  <p><small>
+    Normal-rate tax: &#8377;{{ tax.normalRateTax }} &middot; Special-rate (LTCG 112A) tax: &#8377;{{ tax.specialRateTax }}
+    {% if tax.rebate87AMarginalRelief %} &middot; Marginal relief considered: &#8377;{{ tax.rebate87AMarginalRelief }}{% endif %}
+  </small></p>
+  {% include "itr1/_trace_drawer.html" with trace=tax.traceTax %}
+  {% include "itr1/_trace_drawer.html" with trace=tax.traceRebate %}
+</fieldset>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="_version" value="{{ draft_version }}">
+
+  <fieldset id="d6">
+    <legend>D6 &mdash; Relief u/s 89</legend>
+    <div class="row">
+      <div class="field">{{ form.relief89.label_tag }}{{ form.relief89 }}{{ form.relief89.errors }}</div>
+      <div class="field">{{ form.form10EFiled.label_tag }}{{ form.form10EFiled }}{{ form.form10EFiled.errors }}</div>
+      <div class="field">{{ form.form10EAckNo.label_tag }}{{ form.form10EAckNo }}{{ form.form10EAckNo.errors }}</div>
+    </div>
+    <div class="computed-line"><span>Balance tax after relief (computed)</span><span class="val">&#8377;{{ tax.balanceTaxAfterRelief }}</span></div>
+  </fieldset>
+
+  <fieldset id="d7">
+    <legend>D7 &mdash; Interest u/s 234A</legend>
+    <p><small>Computed default: &#8377;{{ interest.interest234AComputed }}. Leave the override field blank to use this
+      computed value, or enter an amount to override it.</small></p>
+    <div class="field">
+      {{ form.interest234AOverride.label_tag }} (computed: &#8377;{{ interest.interest234AComputed }}) &mdash; override:
+      {{ form.interest234AOverride }}{{ form.interest234AOverride.errors }}
+    </div>
+    <p><small>Amount used: &#8377;{{ interest.interest234A }}</small></p>
+    {% include "itr1/_trace_drawer.html" with trace=interest.trace234A %}
+  </fieldset>
+
+  <fieldset id="d8">
+    <legend>D8 &mdash; Interest u/s 234B</legend>
+    <p><small>Computed default: &#8377;{{ interest.interest234BComputed }}. Leave the override field blank to use this
+      computed value, or enter an amount to override it.</small></p>
+    <div class="field">
+      {{ form.interest234BOverride.label_tag }} (computed: &#8377;{{ interest.interest234BComputed }}) &mdash; override:
+      {{ form.interest234BOverride }}{{ form.interest234BOverride.errors }}
+    </div>
+    <p><small>Amount used: &#8377;{{ interest.interest234B }}</small></p>
+    {% include "itr1/_trace_drawer.html" with trace=interest.trace234B %}
+  </fieldset>
+
+  <fieldset id="d9">
+    <legend>D9 &mdash; Interest u/s 234C (computed, read-only)</legend>
+    <div class="computed-line"><span>Interest u/s 234C</span><span class="val">&#8377;{{ interest.interest234C }}</span></div>
+    {% include "itr1/_trace_drawer.html" with trace=interest.trace234C %}
+  </fieldset>
+
+  <fieldset id="d10">
+    <legend>D10 &mdash; Fee u/s 234F</legend>
+    <p><small>Computed default: &#8377;{{ interest.fee234FComputed }}. Leave the override field blank to use this
+      computed value, or enter an amount to override it.</small></p>
+    <div class="field">
+      {{ form.fee234FOverride.label_tag }} (computed: &#8377;{{ interest.fee234FComputed }}) &mdash; override:
+      {{ form.fee234FOverride }}{{ form.fee234FOverride.errors }}
+    </div>
+    <p><small>Amount used: &#8377;{{ interest.fee234F }}</small></p>
+    {% include "itr1/_trace_drawer.html" with trace=interest.trace234F %}
+  </fieldset>
+
+  <fieldset id="d10a">
+    <legend>D10a &mdash; Fee u/s 234-I (computed, read-only)</legend>
+    <div class="computed-line"><span>Fee for furnishing a revised return u/s 234-I</span><span class="val">&#8377;{{ interest.fee234I }}</span></div>
+    {% include "itr1/_trace_drawer.html" with trace=interest.trace234I %}
+  </fieldset>
+
+  <fieldset id="d11">
+    <legend>D11 &mdash; Total Tax, Fee and Interest (computed, read-only)</legend>
+    <p>Total Tax, Fee and Interest: <strong>&#8377;{{ total_tax_fee_interest_display }}</strong></p>
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit" name="action" value="save">{{ t.save }}</button>
+    <button type="submit" name="action" value="confirm">{{ t.confirm }}</button>
+  </div>
+</form>
+{% endblock %}

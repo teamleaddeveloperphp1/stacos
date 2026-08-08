@@ -1,0 +1,107 @@
+{% extends "itr1/base.html" %}
+
+{% block title %}{{ t.screen_gross_total_income }}{% endblock %}
+{% block page_title %}{{ t.screen_gross_total_income }}{% endblock %}
+
+{% block content %}
+{% if conflict_message %}
+  <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+
+<div class="gti-summary">
+  Gross Total Income: <strong>&#8377;{{ gti_display }}</strong>
+  <div><small>Income from Salary: &#8377;{{ computed.salary.incomeFromSalary }} &middot;
+    House Property: &#8377;{{ computed.houseProperty.incomeForGti }} &middot;
+    Other Sources: &#8377;{{ computed.otherSources.netIncomeOthSrc }}</small></div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="_version" value="{{ draft_version }}">
+
+  <fieldset id="b1">
+    <legend>{{ t.section_b1_salary }}</legend>
+    <div class="row">
+      <div class="field">{{ salary_form.salary17_1.label_tag }}{{ salary_form.salary17_1 }}{{ salary_form.salary17_1.errors }}</div>
+      <div class="field">{{ salary_form.perquisites17_2.label_tag }}{{ salary_form.perquisites17_2 }}{{ salary_form.perquisites17_2.errors }}</div>
+      <div class="field">{{ salary_form.profits_in_lieu17_3.label_tag }}{{ salary_form.profits_in_lieu17_3 }}{{ salary_form.profits_in_lieu17_3.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ salary_form.entertainment_allowance_16ii.label_tag }}{{ salary_form.entertainment_allowance_16ii }}{{ salary_form.entertainment_allowance_16ii.errors }}</div>
+      <div class="field">{{ salary_form.professional_tax_16iii.label_tag }}{{ salary_form.professional_tax_16iii }}{{ salary_form.professional_tax_16iii.errors }}</div>
+    </div>
+    <p><small>Standard deduction u/s 16(ia) is computed automatically: &#8377;{{ computed.salary.standardDeduction16ia }}</small></p>
+    {% include "itr1/_trace_drawer.html" with trace=computed.salary.traceStandardDeduction %}
+
+    <p><strong>Exempt Allowances u/s 10</strong></p>
+    {{ allowance_formset.management_form }}
+    {% for allow_form in allowance_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ allow_form.nature.label_tag }}{{ allow_form.nature }}{{ allow_form.nature.errors }}</div>
+        <div class="field">{{ allow_form.amount.label_tag }}{{ allow_form.amount }}{{ allow_form.amount.errors }}</div>
+        {% if allow_form.DELETE %}<div class="field">{{ allow_form.DELETE.label_tag }}{{ allow_form.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <p><small>HRA u/s 10(13A) eligible exemption (computed from the 10(13A) schedule, not yet entered in this pass): &#8377;{{ computed.hra.eligibleExemption }}</small></p>
+    {% include "itr1/_trace_drawer.html" with trace=computed.hra.trace %}
+  </fieldset>
+
+  <fieldset id="b2">
+    <legend>{{ t.section_b2_house_property }}</legend>
+    <p><small>Co-ownership sub-rows and Schedule 24(b) lender detail are not part of this first pass; the top-level property fields below round-trip correctly.</small></p>
+    {{ property_formset.management_form }}
+    {% for hp_form in property_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ hp_form.property_type.label_tag }}{{ hp_form.property_type }}{{ hp_form.property_type.errors }}</div>
+        <div class="field">{{ hp_form.co_owned.label_tag }}{{ hp_form.co_owned }}{{ hp_form.co_owned.errors }}</div>
+        <div class="field">{{ hp_form.assessee_share_percent.label_tag }}{{ hp_form.assessee_share_percent }}{{ hp_form.assessee_share_percent.errors }}</div>
+      </div>
+      <div class="row formset-row">
+        <div class="field">{{ hp_form.gross_rent.label_tag }}{{ hp_form.gross_rent }}{{ hp_form.gross_rent.errors }}</div>
+        <div class="field">{{ hp_form.local_taxes.label_tag }}{{ hp_form.local_taxes }}{{ hp_form.local_taxes.errors }}</div>
+        <div class="field">{{ hp_form.rent_not_realized.label_tag }}{{ hp_form.rent_not_realized }}{{ hp_form.rent_not_realized.errors }}</div>
+        <div class="field">{{ hp_form.interest_on_borrowed_capital.label_tag }}{{ hp_form.interest_on_borrowed_capital }}{{ hp_form.interest_on_borrowed_capital.errors }}</div>
+        {% if hp_form.DELETE %}<div class="field">{{ hp_form.DELETE.label_tag }}{{ hp_form.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </fieldset>
+
+  <fieldset id="b3">
+    <legend>{{ t.section_b3_other_sources }}</legend>
+    <p><small>Dividend is a single amount here; the quarterly breakup grid is not part of this first pass.</small></p>
+    {{ other_source_formset.management_form }}
+    {% for os_form in other_source_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ os_form.nature.label_tag }}{{ os_form.nature }}{{ os_form.nature.errors }}</div>
+        <div class="field">{{ os_form.amount.label_tag }}{{ os_form.amount }}{{ os_form.amount.errors }}</div>
+        {% if os_form.DELETE %}<div class="field">{{ os_form.DELETE.label_tag }}{{ os_form.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </fieldset>
+
+  <fieldset id="exemptIncome">
+    <legend>{{ t.section_exempt_income }}</legend>
+    {{ exempt_income_formset.management_form }}
+    {% for ei_form in exempt_income_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ ei_form.category.label_tag }}{{ ei_form.category }}{{ ei_form.category.errors }}</div>
+        <div class="field">{{ ei_form.sub_category.label_tag }}{{ ei_form.sub_category }}{{ ei_form.sub_category.errors }}</div>
+        <div class="field">{{ ei_form.description.label_tag }}{{ ei_form.description }}{{ ei_form.description.errors }}</div>
+        <div class="field">{{ ei_form.amount.label_tag }}{{ ei_form.amount }}{{ ei_form.amount.errors }}</div>
+        {% if ei_form.DELETE %}<div class="field">{{ ei_form.DELETE.label_tag }}{{ ei_form.DELETE }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </fieldset>
+
+  <fieldset id="b4">
+    <legend>{{ t.section_b4_gti }}</legend>
+    <p>Gross Total Income (computed): <strong>&#8377;{{ gti_display }}</strong></p>
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit" name="action" value="save">{{ t.save }}</button>
+    <button type="submit" name="action" value="confirm">{{ t.confirm }}</button>
+  </div>
+</form>
+{% endblock %}

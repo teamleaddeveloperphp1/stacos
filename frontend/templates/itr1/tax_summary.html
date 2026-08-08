@@ -1,0 +1,93 @@
+{% extends "itr1/base.html" %}
+
+{% block title %}{{ t.screen_tax_summary }}{% endblock %}
+{% block page_title %}{{ t.screen_tax_summary }}{% endblock %}
+
+{% block content %}
+
+{% if computed.refundDue > 0 %}
+  <div class="banner" id="refund">
+    You are eligible for a refund of <strong>&#8377;{{ display.refundDue }}</strong>
+    {% if computed.refundBelowMinimumThreshold %}
+      <p class="note">Note: refunds below &#8377;100 are not issued by the department.</p>
+    {% endif %}
+  </div>
+{% elif computed.balanceTaxPayable > 0 %}
+  <div class="banner payable" id="payable">
+    You have a tax payable of <strong>&#8377;{{ display.balanceTaxPayable }}</strong>
+  </div>
+{% else %}
+  <div class="banner neutral" id="payable">
+    You have no tax payable and no refund due.
+  </div>
+{% endif %}
+
+<fieldset>
+  <legend>A &mdash; Gross Total Income</legend>
+  <div class="computed-line"><span>Income from Salary</span><span class="val">&#8377;{{ display.salary }}</span></div>
+  <div class="computed-line"><span>Income from House Property</span><span class="val">&#8377;{{ display.houseProperty }}</span></div>
+  <div class="computed-line"><span>Income from Other Sources</span><span class="val">&#8377;{{ display.otherSources }}</span></div>
+  <div class="computed-line"><span>Long-Term Capital Gains u/s 112A</span><span class="val">&#8377;{{ display.ltcg112A }}</span></div>
+  <div class="computed-line total"><span>Total (Gross Total Income)</span><span class="val">&#8377;{{ display.grossTotalIncome }}</span></div>
+</fieldset>
+
+<fieldset>
+  <legend>B &mdash; Total Deductions (Chapter VI-A)</legend>
+  {% for line in deduction_lines %}
+    <div class="computed-line"><span>Section {{ line.section }}</span><span class="val">&#8377;{{ line.amount_display }}</span></div>
+  {% endfor %}
+  <div class="computed-line total"><span>Total Deductions</span><span class="val">&#8377;{{ display.totalDeductions }}</span></div>
+</fieldset>
+
+<fieldset>
+  <legend>C &mdash; Total Taxable Income (A &minus; B)</legend>
+  <div class="computed-line total"><span>Total Taxable Income</span><span class="val">&#8377;{{ display.totalIncome }}</span></div>
+</fieldset>
+
+<fieldset>
+  <legend>D &mdash; Total Tax, Fee and Interest</legend>
+  <div class="computed-line"><span>D1. Tax payable on total income</span><span class="val">&#8377;{{ display.taxPayableOnTotalIncome }}</span></div>
+  <div class="computed-line"><span>D2. Rebate u/s 87A</span><span class="val">&#8377;{{ display.rebate87A }}</span></div>
+  <div class="computed-line"><span>D3. Tax payable after rebate</span><span class="val">&#8377;{{ display.taxPayableAfterRebate }}</span></div>
+  <div class="computed-line"><span>D4. Health &amp; education cess</span><span class="val">&#8377;{{ display.educationCess }}</span></div>
+  <div class="computed-line"><span>D5. Total tax and cess</span><span class="val">&#8377;{{ display.totalTaxAndCess }}</span></div>
+  <div class="computed-line"><span>D6. Relief u/s 89</span><span class="val">&#8377;{{ display.relief89 }}</span></div>
+  <div class="computed-line"><span>Balance tax after relief</span><span class="val">&#8377;{{ display.balanceTaxAfterRelief }}</span></div>
+  <div class="computed-line"><span>D7. Interest u/s 234A</span><span class="val">&#8377;{{ display.interest234A }}</span></div>
+  <div class="computed-line"><span>D8. Interest u/s 234B</span><span class="val">&#8377;{{ display.interest234B }}</span></div>
+  <div class="computed-line"><span>D9. Interest u/s 234C</span><span class="val">&#8377;{{ display.interest234C }}</span></div>
+  <div class="computed-line"><span>D10. Fee u/s 234F</span><span class="val">&#8377;{{ display.fee234F }}</span></div>
+  <div class="computed-line"><span>D10a. Fee u/s 234-I</span><span class="val">&#8377;{{ display.fee234I }}</span></div>
+  <div class="computed-line total"><span>D11. Total Tax, Fee and Interest</span><span class="val">&#8377;{{ display.totalTaxFeeAndInterest }}</span></div>
+</fieldset>
+
+<fieldset>
+  <legend>E &mdash; Total Taxes Paid</legend>
+  <div class="computed-line"><span>TDS on salary (TDS1)</span><span class="val">&#8377;{{ display.tds1 }}</span></div>
+  <div class="computed-line"><span>TDS other than salary (TDS2)</span><span class="val">&#8377;{{ display.tds2 }}</span></div>
+  <div class="computed-line"><span>TDS on sale of immovable property etc. (TDS3)</span><span class="val">&#8377;{{ display.tds3 }}</span></div>
+  <div class="computed-line"><span>Tax Collected at Source (TCS)</span><span class="val">&#8377;{{ display.tcs }}</span></div>
+  <div class="computed-line"><span>D12(a). Advance Tax</span><span class="val">&#8377;{{ display.advanceTax }}</span></div>
+  <div class="computed-line"><span>D12(b). Self-Assessment Tax</span><span class="val">&#8377;{{ display.selfAssessmentTax }}</span></div>
+  <div class="computed-line total"><span>Total Taxes Paid</span><span class="val">&#8377;{{ display.totalTaxesPaid }}</span></div>
+</fieldset>
+
+<fieldset>
+  <legend>Amount Payable / Refund</legend>
+  {% if computed.refundDue > 0 %}
+    <div class="computed-line total"><span>Refund (D12 &minus; D11)</span><span class="val">&#8377;{{ display.refundDue }}</span></div>
+  {% elif computed.balanceTaxPayable > 0 %}
+    <div class="computed-line total"><span>Tax Payable (D11 &minus; D12)</span><span class="val">&#8377;{{ display.balanceTaxPayable }}</span></div>
+  {% else %}
+    <div class="computed-line total"><span>Amount Payable / Refund</span><span class="val">&#8377;0</span></div>
+  {% endif %}
+</fieldset>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="actions">
+    <button type="submit" name="action" value="proceed">{{ t.proceed_to_validation }}</button>
+    <button type="submit" name="action" value="export_pdf" formtarget="_blank">Export computation sheet (PDF)</button>
+  </div>
+</form>
+{% endblock %}

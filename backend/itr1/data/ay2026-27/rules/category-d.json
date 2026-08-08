@@ -1,0 +1,15 @@
+[
+  {
+    "id": "D-1",
+    "screen": "TAX_LIABILITY",
+    "tier": 2,
+    "fields": ["taxLiability.relief89", "taxLiability.form10EFiled"],
+    "appliesWhen": "relief89 > 0",
+    "assert": "form10EFiled",
+    "message": "Relief u/s 89(1) of {{relief}} has been claimed without furnishing Form 10E. Form 10E must be filed separately before the return is submitted, otherwise the relief may not be allowed.",
+    "remediation": "File Form 10E on the e-filing portal, then record that it has been filed together with its acknowledgement number.",
+    "deepLink": "TAX_LIABILITY#d6",
+    "values": { "relief": "relief89" },
+    "source": "The assessee has claimed relief u/s 89(1) without furnishing of Form 10E"
+  }
+]

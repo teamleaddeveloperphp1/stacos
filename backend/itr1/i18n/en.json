@@ -1,0 +1,53 @@
+{
+  "app_name": "ITR-1",
+  "dashboard": "Dashboard",
+  "returns": "Returns",
+  "ay_label": "AY",
+  "pan_label": "PAN",
+  "regime_new": "NEW REGIME",
+  "regime_old": "OLD REGIME",
+  "save": "Save",
+  "confirm": "Confirm",
+  "download_json": "Download JSON",
+  "proceed_to_validation": "Proceed to Validation",
+  "acknowledge_selected": "I understand — acknowledge selected",
+
+  "screen_personal_info": "Personal Information",
+  "screen_gross_total_income": "Gross Total Income",
+  "screen_total_deductions": "Total Deductions",
+  "screen_tax_paid": "Tax Paid",
+  "screen_tax_liability": "Tax Liability",
+  "screen_tax_summary": "Tax Summary",
+  "screen_validation": "Validation & JSON",
+
+  "section_profile": "Profile",
+  "section_contact": "Contact",
+  "section_primary_address": "Primary Address",
+  "section_filing_section": "Filing Section",
+  "section_seventh_proviso": "Seventh Proviso to s.139(1)",
+  "section_representative_assessee": "Representative Assessee",
+  "section_bank_details": "Bank Details",
+
+  "section_b1_salary": "B1 — Income from Salary",
+  "section_b2_house_property": "B2 — Income from House Property",
+  "section_b3_other_sources": "B3 — Income from Other Sources",
+  "section_exempt_income": "Exempt Income (Schedule EI)",
+  "section_b4_gti": "B4 — Gross Total Income",
+
+  "validation_successful": "Validation successful!",
+  "validation_successful_detail": "No errors were found.",
+  "validation_failed": "Validation failed",
+  "errors": "Errors",
+  "advisories_heading": "Advisories — require acknowledgement before download",
+  "go_to_field": "Go to field ›",
+
+  "rule_set_label": "Rule set",
+  "schema_label": "Schema",
+  "constants_label": "Constants",
+  "draft_label": "Draft",
+  "saved_label": "saved",
+
+  "language": "Language",
+  "language_english": "English",
+  "language_hindi": "हिन्दी"
+}

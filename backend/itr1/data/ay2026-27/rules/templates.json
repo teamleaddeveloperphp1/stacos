@@ -1,0 +1,133 @@
+{
+  "EXEMPT_INCOME_UNIQUE": {
+    "screen": "GROSS_TOTAL_INCOME",
+    "tier": 2,
+    "fields": ["income.exemptIncome"],
+    "appliesWhen": "true",
+    "assert": "countOf(exemptIncomeSubCategories, '{{subCategory}}') <= 1",
+    "message": "\"{{label}}\" cannot be selected more than one time under Exempt Income.",
+    "remediation": "Merge the duplicate \"{{label}}\" rows into a single row.",
+    "deepLink": "GROSS_TOTAL_INCOME#exemptIncome",
+    "values": { "count": "countOf(exemptIncomeSubCategories, '{{subCategory}}')" },
+    "source": "\"{{label}}\" drop-down cannot be selected more than one time under Exempt Income."
+  },
+
+  "OTH_SRC_UNIQUE": {
+    "screen": "GROSS_TOTAL_INCOME",
+    "tier": 2,
+    "fields": ["income.otherSources"],
+    "appliesWhen": "true",
+    "assert": "countOf(othSrcNatures, '{{nature}}') <= 1",
+    "message": "\"{{label}}\" cannot be selected more than one time under Income from Other Sources.",
+    "remediation": "Merge the duplicate \"{{label}}\" rows into a single row.",
+    "deepLink": "GROSS_TOTAL_INCOME#b3",
+    "values": { "count": "countOf(othSrcNatures, '{{nature}}')" },
+    "source": "\"{{label}}\" drop-down cannot be selected more than one time under Income from other sources"
+  },
+
+  "DONEE_MODE_MANDATORY": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "fields": ["deductions.schedule80G"],
+    "appliesWhen": "sched80GFilled",
+    "assert": "count(where(where(sched80GDoneeRows, 'block', '{{block}}'), 'donationTotal', 0)) == 0",
+    "message": "In Schedule 80G, table {{blockName}}, either 'Donation in cash' or 'Donation in other mode' must be entered; the total deduction column cannot be entered without it.",
+    "remediation": "Enter the donation amount for every row in table {{blockName}}, or remove the empty rows.",
+    "deepLink": "TOTAL_DEDUCTIONS#sec80G",
+    "values": {},
+    "source": "In Schedule 80G in table {{blockName}} donation in cash or donation in other mode is to be entered mandatory without which total deduction column should not be entered"
+  },
+
+  "DONEE_TOTAL_EQUALS_MODES": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "scope": "PAYLOAD",
+    "fields": ["deductions.schedule80G"],
+    "appliesWhen": "exists(P, 'Schedule80G.{{blockKey}}')",
+    "assert": "sumOf(rows(P,'Schedule80G.{{blockKey}}.DoneeWithPan'),'DonationAmt') == sumOf(rows(P,'Schedule80G.{{blockKey}}.DoneeWithPan'),'DonationAmtCash') + sumOf(rows(P,'Schedule80G.{{blockKey}}.DoneeWithPan'),'DonationAmtOtherMode')",
+    "message": "In Schedule 80G, table {{blockName}}, the total donation must equal the sum of 'Donation in cash' and 'Donation in other mode'.",
+    "remediation": "Re-open Schedule 80G so the row totals are recomputed.",
+    "deepLink": "TOTAL_DEDUCTIONS#sec80G",
+    "values": {},
+    "source": "Total Donation should be equal to sum of \"Donation in cash\" AND \"Donation in other mode\" in table (80G) {{blockName}}"
+  },
+
+  "NEW_REGIME_ZERO": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "fields": ["deductions.s{{section}}"],
+    "appliesWhen": "isNewRegime",
+    "assert": "u{{section}} == 0",
+    "message": "Under the new tax regime the deduction claimed u/s {{sectionLabel}} must not be more than 0. {{claimed}} has been claimed.",
+    "remediation": "Set the {{sectionLabel}} claim to 0, or opt out of the new tax regime.",
+    "deepLink": "TOTAL_DEDUCTIONS#sec{{section}}",
+    "values": { "claimed": "u{{section}}" },
+    "source": "If New Tax Regime is selected then In Schedule VIA, deduction claimed u/s {{sectionLabel}} should not be more than \"0\""
+  },
+
+  "ELIGIBLE_LE_ENTERED": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "fields": ["deductions.s{{section}}"],
+    "appliesWhen": "true",
+    "assert": "e{{section}} <= u{{section}}",
+    "message": "The eligible amount of deduction claimed u/s {{sectionLabel}} ({{eligible}}) should not be more than the user-enterable amount ({{entered}}).",
+    "remediation": "Re-open the Total Deductions screen so the eligible amount is recomputed.",
+    "deepLink": "TOTAL_DEDUCTIONS#sec{{section}}",
+    "values": { "eligible": "e{{section}}", "entered": "u{{section}}" },
+    "source": "Eligible amount of deduction claimed u/s {{sectionLabel}} should not be more than user enterable amount"
+  },
+
+  "VIA_MATCHES_SCHEDULE": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "fields": ["deductions.s{{section}}"],
+    "appliesWhen": "u{{section}} > 0",
+    "assert": "u{{section}} == {{scheduleTotal}}",
+    "message": "The deduction u/s {{sectionLabel}} claimed under Chapter VI-A ({{claimed}}) must be the same as the \"{{totalLabel}}\" per {{scheduleName}} ({{schedule}}).",
+    "remediation": "Adjust the {{scheduleName}} rows so that they total {{claimed}}, or change the {{sectionLabel}} claim to {{schedule}}.",
+    "deepLink": "TOTAL_DEDUCTIONS#sec{{section}}",
+    "values": { "claimed": "u{{section}}", "schedule": "{{scheduleTotal}}" },
+    "source": "Deduction u/s {{sectionLabel}} claimed under chapter VIA should be same as the \"{{totalLabel}}\" as per {{scheduleName}}"
+  },
+
+  "SCHEDULE_ROWS_SUM": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "scope": "PAYLOAD",
+    "fields": [],
+    "appliesWhen": "exists(P, '{{payloadTotal}}')",
+    "assert": "num(path(P,'{{payloadTotal}}')) == sumOf(rows(P,'{{payloadRows}}'),'{{payloadField}}')",
+    "message": "In {{scheduleName}} the sum of the individual rows for \"{{column}}\" ({{expected}}) must match the \"Total of Payments\" as per {{scheduleName}} ({{total}}).",
+    "remediation": "Re-open {{scheduleName}} so the total is recomputed.",
+    "deepLink": "{{deepLink}}",
+    "values": { "total": "num(path(P,'{{payloadTotal}}'))", "expected": "sumOf(rows(P,'{{payloadRows}}'),'{{payloadField}}')" },
+    "source": "In {{scheduleName}} the sum of individual rows for \"{{column}}\" shall match with the \"Total of Payments\" as per the {{scheduleName}}"
+  },
+
+  "SCHED_80D_INSURER_TOTAL": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "fields": ["deductions.schedule80D"],
+    "appliesWhen": "{{insurance}} > 0",
+    "assert": "{{insurers}} == {{insurance}}",
+    "message": "In Schedule 80D the breakup of the individual rows for 'amount of premium paid' ({{rowsTotal}}) must match the health insurance premium entered at Sl. No. {{block}} ({{header}}).",
+    "remediation": "Adjust the insurer rows at Sl. No. {{block}} so that they total {{header}}.",
+    "deepLink": "TOTAL_DEDUCTIONS#sec80D-{{block}}",
+    "values": { "rowsTotal": "{{insurers}}", "header": "{{insurance}}" },
+    "source": "In schedule 80D, breakup of individual rows for \"amount of premium paid\" shall match with the Health insurance premium entered by the user under \"Health insurance\" at sl.no.{{block}}"
+  },
+
+  "SCHED_80D_INSURER_DETAILS": {
+    "screen": "TOTAL_DEDUCTIONS",
+    "tier": 2,
+    "fields": ["deductions.schedule80D"],
+    "appliesWhen": "{{insuranceFact}} > 0",
+    "assert": "count({{rowsFact}}) > 0 and count(where({{rowsFact}}, 'insurerName', '')) == 0 and count(where({{rowsFact}}, 'policyNo', '')) == 0",
+    "message": "Details such as the name of the insurer and the policy number are required in Schedule 80D to claim a deduction for health insurance at Sl. No. {{block}}(i).",
+    "remediation": "Enter the insurer name and policy number for every row at Sl. No. {{block}}(i).",
+    "deepLink": "TOTAL_DEDUCTIONS#sec80D-{{block}}",
+    "values": {},
+    "source": "Details such as name of the Insurer, Policy number are required to be provided in schedule 80D to claim deduction for health insurance at sl. No. {{block}} (i)"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "app_name": "आईटीआर-1",
+  "dashboard": "डैशबोर्ड",
+  "returns": "रिटर्न",
+  "ay_label": "निर्धारण वर्ष",
+  "pan_label": "पैन",
+  "regime_new": "नई कर व्यवस्था",
+  "regime_old": "पुरानी कर व्यवस्था",
+  "save": "सहेजें",
+  "confirm": "पुष्टि करें",
+  "download_json": "JSON डाउनलोड करें",
+  "proceed_to_validation": "सत्यापन के लिए आगे बढ़ें",
+  "acknowledge_selected": "मैं समझता/समझती हूँ — चयनित को स्वीकार करें",
+
+  "screen_personal_info": "व्यक्तिगत जानकारी",
+  "screen_gross_total_income": "सकल कुल आय",
+  "screen_total_deductions": "कुल कटौतियाँ",
+  "screen_tax_paid": "भुगतान किया गया कर",
+  "screen_tax_liability": "कर देयता",
+  "screen_tax_summary": "कर सारांश",
+  "screen_validation": "सत्यापन और JSON",
+
+  "section_profile": "प्रोफ़ाइल",
+  "section_contact": "संपर्क",
+  "section_primary_address": "प्राथमिक पता",
+  "section_filing_section": "फाइलिंग अनुभाग",
+  "section_seventh_proviso": "धारा 139(1) का सातवाँ परंतुक",
+  "section_representative_assessee": "प्रतिनिधि निर्धारिती",
+  "section_bank_details": "बैंक विवरण",
+
+  "section_b1_salary": "B1 — वेतन से आय",
+  "section_b2_house_property": "B2 — गृह संपत्ति से आय",
+  "section_b3_other_sources": "B3 — अन्य स्रोतों से आय",
+  "section_exempt_income": "अनुसूची EI — छूट प्राप्त आय",
+  "section_b4_gti": "B4 — सकल कुल आय",
+
+  "validation_successful": "सत्यापन सफल!",
+  "validation_successful_detail": "कोई त्रुटि नहीं मिली।",
+  "validation_failed": "सत्यापन विफल",
+  "errors": "त्रुटियाँ",
+  "advisories_heading": "सलाह — डाउनलोड से पहले स्वीकृति आवश्यक",
+  "go_to_field": "फ़ील्ड पर जाएँ ›",
+
+  "rule_set_label": "नियम सेट",
+  "schema_label": "स्कीमा",
+  "constants_label": "स्थिरांक",
+  "draft_label": "ड्राफ़्ट",
+  "saved_label": "सहेजा गया",
+
+  "language": "भाषा",
+  "language_english": "English",
+  "language_hindi": "हिन्दी"
+}

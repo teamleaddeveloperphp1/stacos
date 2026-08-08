@@ -1,0 +1,81 @@
+{% extends "itr1/base.html" %}
+
+{% block title %}{{ t.screen_validation }}{% endblock %}
+{% block page_title %}{{ t.screen_validation }}{% endblock %}
+
+{% block content %}
+
+{% if report.ok %}
+  <div class="success-banner">
+    <strong>&#10003; {{ t.validation_successful }}</strong> {{ t.validation_successful_detail }}
+  </div>
+{% else %}
+  <p><strong>&#10007; {{ t.validation_failed }}</strong> — {{ report.errors|length }} error(s), {{ report.advisories|length }} advisory(ies).</p>
+{% endif %}
+
+{% if report.errors %}
+  <h2>{{ t.errors }}</h2>
+  {% for f in report.errors %}
+    <div class="finding">
+      <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
+      <div><em>{{ f.remediation }}</em></div>
+      {% if f.goto_url %}<a href="{{ f.goto_url }}">{{ t.go_to_field }}</a>{% endif %}
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if report.advisories or report.documentAdvisories %}
+  <h2>{{ t.advisories_heading }}</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% for f in report.advisories %}
+      <div class="finding advisory">
+        <label>
+          <input type="checkbox" name="ack_{{ f.ruleId }}" {% if f.ruleId not in pending_ack_ids %}checked{% endif %}>
+          <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
+        </label>
+        {% if f.goto_url %}<a href="{{ f.goto_url }}">{{ t.go_to_field }}</a>{% endif %}
+      </div>
+    {% endfor %}
+    {% for f in report.documentAdvisories %}
+      <div class="finding document">
+        <label>
+          <input type="checkbox" name="ack_{{ f.ruleId }}" {% if f.ruleId not in pending_ack_ids %}checked{% endif %}>
+          <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
+        </label>
+        {% if f.goto_url %}<a href="{{ f.goto_url }}">{{ t.go_to_field }}</a>{% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" name="action" value="acknowledge">{{ t.acknowledge_selected }}</button>
+  </form>
+{% endif %}
+
+{% if report.ruleErrors %}
+  <h2>Rule engine errors (defects — never silently ignored)</h2>
+  <ul>
+    {% for e in report.ruleErrors %}<li><span class="rule-id">[{{ e.ruleId }}]</span> {{ e.error }}</li>{% endfor %}
+  </ul>
+{% endif %}
+
+<p>{{ t.rule_set_label }}: {{ report.ruleSetVersion }} &middot; {{ t.constants_label }}: {{ report.constantsVersion }} &middot; Evaluated: {{ report.rulesEvaluated }} &middot; Skipped: {{ report.rulesSkipped }}</p>
+
+<hr>
+<form method="post">
+  {% csrf_token %}
+  <div class="actions">
+    {% if downloadable %}
+      <button type="submit" name="action" value="download">{{ t.download_json }}</button>
+    {% endif %}
+    <button type="submit" name="action" value="preview" formtarget="_blank">Preview</button>
+    <button type="submit" name="action" value="export_report" formtarget="_blank">Export validation report (PDF)</button>
+  </div>
+</form>
+{% if not downloadable %}
+  <p><em>Download JSON is disabled
+    {% if report.errors or report.ruleErrors %}— fix the errors above first.
+    {% elif pending_ack_ids %}— acknowledge every advisory above first.
+    {% else %}— the generated JSON does not yet validate against the CBDT schema.
+    {% endif %}
+  </em></p>
+{% endif %}
+{% endblock %}
