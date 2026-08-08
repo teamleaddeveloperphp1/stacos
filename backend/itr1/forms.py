@@ -49,14 +49,14 @@ class PersonalInfoForm(forms.Form):
     middle_name = forms.CharField(label='Middle name', max_length=60, required=False)
     last_name = forms.CharField(label='Last / Surname', max_length=60)
     pan = forms.CharField(label='PAN', max_length=10)
-    dob = forms.DateField(label='Date of birth')
+    dob = forms.DateField(label='Date of birth', widget=forms.DateInput(attrs={'type': 'date'}))
     aadhaar = forms.CharField(label='Aadhaar number', max_length=12, required=False)
     employer_category = forms.ChoiceField(label='Nature of employment', choices=EMPLOYER_CATEGORY_CHOICES, required=False)
 
     primary_mobile = forms.CharField(label='Primary mobile', max_length=10)
     secondary_mobile = forms.CharField(label='Secondary mobile', max_length=10, required=False)
-    primary_email = forms.EmailField(label='Primary email')
-    secondary_email = forms.EmailField(label='Secondary email', required=False)
+    primary_email = forms.EmailField(label='Primary email', max_length=125)
+    secondary_email = forms.EmailField(label='Secondary email', max_length=125, required=False)
 
     flat_door_building = forms.CharField(label='Flat/Door/Building', max_length=120)
     premise_building_name = forms.CharField(label='Premise/Building name', max_length=120, required=False)
@@ -80,7 +80,7 @@ class PersonalInfoForm(forms.Form):
 
     # --- Original return details (139(5) revised / 139(9) defective-response) ---
     orig_return_ack_no = forms.CharField(label='Original return acknowledgement no.', max_length=30, required=False)
-    orig_return_filed_date = forms.DateField(label='Original return filed date', required=False)
+    orig_return_filed_date = forms.DateField(label='Original return filed date', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     orig_return_file_sec = forms.TypedChoiceField(
         label='Original return filing section', choices=[('', '— Not applicable —')] + RETURN_FILE_SEC_CHOICES,
         required=False, coerce=lambda v: int(v) if v else None, empty_value=None,
@@ -115,7 +115,7 @@ class PersonalInfoForm(forms.Form):
         label='Is this return being filed by a representative assessee?', choices=YES_NO_CHOICES, initial='N',
     )
     representative_name = forms.CharField(label='Representative name', max_length=120, required=False)
-    representative_email = forms.EmailField(label='Representative email', required=False)
+    representative_email = forms.EmailField(label='Representative email', max_length=125, required=False)
     representative_mobile = forms.CharField(label='Representative mobile', max_length=10, required=False)
     representative_pan = forms.CharField(label='Representative PAN', max_length=10, required=False)
     representative_capacity_other = forms.CharField(label='Capacity (e.g. guardian, agent)', max_length=60, required=False)
@@ -159,8 +159,8 @@ class BankAccountForm(forms.Form):
     ifsc = forms.CharField(label='IFSC', max_length=11)
     bank_name = forms.CharField(label='Bank name', max_length=120, required=False,
                                  help_text='Auto-populated once the IFSC is verified.')
-    account_number = forms.CharField(label='Account number', max_length=34)
-    account_type = forms.ChoiceField(label='Account type', choices=ACCOUNT_TYPE_CHOICES)
+    account_number = forms.CharField(label='Account number', max_length=20)
+    account_type = forms.ChoiceField(label='Account type', choices=ACCOUNT_TYPE_CHOICES, initial='SB')
     nominate_for_refund = forms.BooleanField(label='Nominate for refund', required=False)
 
 
@@ -208,6 +208,7 @@ ALLOWANCE_NATURE_CHOICES = [
 ]
 
 PROPERTY_TYPE_CHOICES = [
+    ('', '— Select —'),
     ('S', 'Self-Occupied'),
     ('L', 'Let Out'),
     ('D', 'Deemed Let Out'),
@@ -491,8 +492,8 @@ class Disability80DDUForm(forms.Form):
 
 class LoanInterestRowForm(forms.Form):
     lender_name = forms.CharField(label='Lender name', max_length=120, required=False)
-    loan_account_no = forms.CharField(label='Loan account no.', max_length=60, required=False)
-    date_of_loan = forms.DateField(label='Date of loan sanction', required=False)
+    loan_account_no = forms.CharField(label='Loan account no.', max_length=20, required=False)
+    date_of_loan = forms.DateField(label='Date of loan sanction', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     interest = forms.IntegerField(label='Interest paid this year', min_value=0, required=False, initial=0)
 
 
@@ -543,7 +544,7 @@ Schedule80GGAFormSet = forms.formset_factory(Schedule80GGARowForm, extra=1, can_
 
 
 class Schedule80GGCRowForm(forms.Form):
-    donation_date = forms.DateField(label='Donation date', required=False)
+    donation_date = forms.DateField(label='Donation date', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     political_party_name = forms.CharField(label='Political party name', max_length=120, required=False)
     political_party_pan = forms.CharField(label='Political party PAN', max_length=10, required=False)
     donation_cash = forms.IntegerField(label='Donation — cash', min_value=0, required=False, initial=0)
@@ -682,7 +683,7 @@ TcsFormSet = forms.formset_factory(TcsRowForm, extra=1, can_delete=True)
 
 class ChallanRowForm(forms.Form):
     bsr_code = forms.CharField(label='BSR code', max_length=7, required=False, validators=[BSR_CODE_VALIDATOR])
-    date_of_deposit = forms.DateField(label='Date of deposit', required=False)
+    date_of_deposit = forms.DateField(label='Date of deposit', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     challan_serial_no = forms.CharField(label='Challan serial number', max_length=5, required=False, validators=[CHALLAN_SERIAL_VALIDATOR])
     amount = forms.IntegerField(label='Amount', min_value=0, required=False, initial=0)
 

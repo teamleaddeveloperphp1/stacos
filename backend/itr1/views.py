@@ -389,6 +389,7 @@ def personal_info(request, return_id):
     model = tax_return.data
     bank_errors = []
     conflict_message = None
+    report = None
 
     if request.method == 'POST':
         form = PersonalInfoForm(request.POST)
@@ -442,6 +443,7 @@ def personal_info(request, return_id):
         'return_id': return_id,
         'bank_errors': bank_errors,
         'conflict_message': conflict_message,
+        'report': report,
         **_chrome_context(tax_return),
     })
 
@@ -597,6 +599,7 @@ def gross_total_income(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
+    report = None
 
     if request.method == 'POST':
         salary_form = SalaryForm(request.POST)
@@ -669,6 +672,7 @@ def gross_total_income(request, return_id):
         'computed': computed,
         'gti_display': format_indian(computed['grossTotalIncome']),
         'conflict_message': conflict_message,
+        'report': report,
         **_chrome_context(tax_return, computed),
     })
 
@@ -1037,6 +1041,7 @@ def total_deductions(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
+    report = None
 
     if request.method == 'POST':
         deductions_form = DeductionsForm(request.POST)
@@ -1143,6 +1148,7 @@ def total_deductions(request, return_id):
         'computed': computed,
         'total_deductions_display': format_indian(computed['totalDeductions']),
         'conflict_message': conflict_message,
+        'report': report,
         **_chrome_context(tax_return, computed),
     })
 
@@ -1324,6 +1330,7 @@ def tax_paid(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
+    report = None
 
     if request.method == 'POST':
         tds1_fs = Tds1FormSet(request.POST, prefix='tds1')
@@ -1393,6 +1400,7 @@ def tax_paid(request, return_id):
         'computed': computed,
         'total_taxes_paid_display': format_indian(computed['taxesPaid']['total']),
         'conflict_message': conflict_message,
+        'report': report,
         **_chrome_context(tax_return, computed),
     })
 
@@ -1425,6 +1433,7 @@ def tax_liability(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
+    report = None
 
     if request.method == 'POST':
         form = TaxLiabilityForm(request.POST)
@@ -1476,6 +1485,7 @@ def tax_liability(request, return_id):
         'total_tax_fee_interest': computed['totalTaxFeeAndInterest'],
         'total_tax_fee_interest_display': format_indian(computed['totalTaxFeeAndInterest']),
         'conflict_message': conflict_message,
+        'report': report,
         **_chrome_context(tax_return, computed),
     })
 

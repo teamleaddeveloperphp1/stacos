@@ -13,6 +13,7 @@ the TS side's `validateFormats: false` -- the CBDT schema uses format-free
 string patterns only.
 """
 
+import multiprocessing
 from dataclasses import dataclass, field
 
 from jsonschema import Draft4Validator
@@ -20,6 +21,23 @@ from jsonschema import Draft4Validator
 from .schema_order import CBDT_SCHEMA
 
 SCHEMA_VERSION = 'ITR-1_2026_Main_V1.1'
+
+# Several of the CBDT schema's own `pattern` regexes (e.g. BankAccountNo,
+# LoanAccNoOfBankOrInstnRefNo, the email patterns) use nested quantifiers
+# that are catastrophically slow to backtrack on certain inputs -- a
+# textbook ReDoS. We cannot rewrite "absolute" schema patterns (see build
+# prompt §0), so instead we bound how long the whole structural check may
+# run.
+#
+# A THREAD-based timeout does not work here: CPython's `re` engine holds
+# the GIL for the full duration of a single match call, including deep
+# backtracking, so even the *timer's own thread* is starved and never
+# fires. Only a separate OS process can be forcibly killed once the
+# deadline passes, so we run the check in a `multiprocessing.Process` and
+# `.terminate()` it on timeout. (Confirmed live: a saved 34-char
+# BankAccountNo hung `manage.py runserver` indefinitely, and blocked every
+# other request behind it, until the process was killed manually.)
+_SCHEMA_VALIDATION_TIMEOUT_SECONDS = 5
 
 _validator = None
 
@@ -83,14 +101,62 @@ def _to_violation(error):
     )
 
 
-def validate_against_schema(payload):
-    """Validate a generated payload. Never raises on invalid data -- returns the errors."""
+def _run_validation_subprocess(payload, result_queue):
+    """Runs in a child process (see `validate_against_schema`) so it can be
+    `.terminate()`-d if a pathological `pattern` regex runs away."""
     validator = _get_validator()
     errors = sorted(validator.iter_errors(payload), key=lambda e: list(e.absolute_path))
-    valid = len(errors) == 0
+    result_queue.put([_to_violation(e) for e in errors])
+
+
+def _timeout_result():
+    return SchemaValidationResult(
+        valid=False,
+        violations=[SchemaViolation(
+            instancePath='/',
+            schemaPath='/',
+            keyword='timeout',
+            message=(
+                'Schema validation could not complete in time. One or more fields likely '
+                'contain an unusually long or unusual value -- check bank account numbers, '
+                'loan account numbers and email addresses for length or formatting issues.'
+            ),
+        )],
+        schemaVersion=SCHEMA_VERSION,
+    )
+
+
+def validate_against_schema(payload):
+    """Validate a generated payload. Never raises on invalid data -- returns the errors.
+
+    Bounded by `_SCHEMA_VALIDATION_TIMEOUT_SECONDS`: see the ReDoS note above
+    that constant for why this runs in a subprocess rather than calling
+    `iter_errors` directly (or from a thread)."""
+    ctx = multiprocessing.get_context('fork')
+    result_queue = ctx.Queue()
+    process = ctx.Process(target=_run_validation_subprocess, args=(payload, result_queue))
+    process.start()
+    process.join(timeout=_SCHEMA_VALIDATION_TIMEOUT_SECONDS)
+
+    if process.is_alive():
+        process.terminate()
+        process.join(timeout=1)
+        if process.is_alive():
+            process.kill()
+            process.join()
+        return _timeout_result()
+
+    try:
+        violations = result_queue.get_nowait()
+    except Exception:
+        # Child died without producing a result (e.g. killed by the OS OOM
+        # killer mid-match) -- fail closed rather than claim success.
+        return _timeout_result()
+
+    valid = len(violations) == 0
     return SchemaValidationResult(
         valid=valid,
-        violations=[] if valid else [_to_violation(e) for e in errors],
+        violations=violations,
         schemaVersion=SCHEMA_VERSION,
     )
 
