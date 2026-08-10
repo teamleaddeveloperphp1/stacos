@@ -4,8 +4,7 @@
    cards, chips, tables, auth pages, services dashboard), built against
    tokens.css. Marketing-only sections (hero, countdown, waitlist,
    etymology, stats, cards/card-tile, foot-grid, cta-strip, fade-up) are
-   intentionally NOT here -- they match nothing in this app. See
-   docs/STYLING.md.
+   intentionally NOT here -- they match nothing in this app.
    ============================================ */
 
 /* ---------- Reset ---------- */
@@ -32,7 +31,7 @@ button { font-family: inherit; }
    Deliberately NOT the marketing clamp(2.4rem, 5.6vw, 4.8rem) hero h1 --
    that renders a page title like "Personal Information" as a ~77px
    headline. App headings are sized for a dense UI and explicitly
-   overridden per-context below (.itr1-header h1, .auth-card h1, etc). */
+   overridden per-context below (.itr-header h1, .auth-card h1, etc). */
 h1, h2, h3, h4, h5 {
   font-family: var(--font-sans);
   font-weight: 600;
@@ -490,7 +489,7 @@ body.signin-page { margin: 0; }
 /* ---------- App shell (returns flow) ---------- */
 .app-shell { display: flex; min-height: 100vh; align-items: stretch; background: var(--off-white); }
 
-nav.itr1-menu {
+nav.itr-menu {
   width: 320px;
   flex-shrink: 0;
   background: var(--white);
@@ -517,7 +516,7 @@ nav.itr1-menu {
   transition: all .2s ease;
 }
 .dashboard-link:hover { color: var(--blue); border-color: var(--blue); background: var(--blue-light); }
-nav.itr1-menu h2 {
+nav.itr-menu h2 {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 500;
@@ -527,9 +526,9 @@ nav.itr1-menu h2 {
   margin: 0 0 16px;
 }
 .menu-taxpayer { font-size: 12.5px; color: var(--grey-500); margin: -8px 0 14px; }
-nav.itr1-menu ul { list-style: none; margin: 0; padding: 0; }
-nav.itr1-menu li { margin-bottom: 2px; }
-nav.itr1-menu a {
+nav.itr-menu ul { list-style: none; margin: 0; padding: 0; }
+nav.itr-menu li { margin-bottom: 2px; }
+nav.itr-menu a {
   text-decoration: none;
   color: var(--ink);
   display: flex;
@@ -542,10 +541,10 @@ nav.itr1-menu a {
   border-left: 2px solid transparent;
   transition: background .15s ease;
 }
-nav.itr1-menu a > span:first-child { min-width: 0; overflow-wrap: break-word; }
-nav.itr1-menu a > .chip { flex-shrink: 0; }
-nav.itr1-menu a:hover { background: var(--grey-50); color: var(--ink); }
-nav.itr1-menu a.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-light); }
+nav.itr-menu a > span:first-child { min-width: 0; overflow-wrap: break-word; }
+nav.itr-menu a > .chip { flex-shrink: 0; }
+nav.itr-menu a:hover { background: var(--grey-50); color: var(--ink); }
+nav.itr-menu a.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-light); }
 
 .lang-switcher {
   margin-top: 24px;
@@ -612,10 +611,10 @@ nav.itr1-menu a.active { color: var(--blue); border-left-color: var(--blue); bac
 .ticker-payable { color: var(--warn); }
 .ticker-neutral { color: var(--grey-500); }
 
-main.itr1-main { flex-grow: 1; min-width: 0; padding: 28px 32px 48px; max-width: 980px; }
-header.itr1-header { border-bottom: 1px solid var(--rule); padding-bottom: 14px; margin-bottom: 20px; }
-header.itr1-header h1 { font-size: 1.7rem; }
-.itr1-footer {
+main.itr-main { flex-grow: 1; min-width: 0; padding: 28px 32px 48px; max-width: 980px; }
+header.itr-header { border-bottom: 1px solid var(--rule); padding-bottom: 14px; margin-bottom: 20px; }
+header.itr-header h1 { font-size: 1.7rem; }
+.itr-footer {
   border-top: 1px solid var(--rule);
   margin-top: 32px;
   padding-top: 12px;
@@ -812,7 +811,7 @@ body.dashboard-body { background: var(--off-white); }
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .app-shell { flex-direction: column; }
-  nav.itr1-menu {
+  nav.itr-menu {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--rule);
@@ -820,10 +819,10 @@ body.dashboard-body { background: var(--off-white); }
     height: auto;
     overflow-y: visible;
   }
-  main.itr1-main { padding: 20px; max-width: none; }
+  main.itr-main { padding: 20px; max-width: none; }
   .service-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
   .service-grid { grid-template-columns: 1fr; }
-  header.itr1-header h1, .dashboard-header h1 { font-size: 1.4rem; }
+  header.itr-header h1, .dashboard-header h1 { font-size: 1.4rem; }
 }

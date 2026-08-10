@@ -3,7 +3,7 @@
    Extracted verbatim from the marketing stylesheet's :root block, plus
    semantic status tokens the marketing palette doesn't have (it is
    deliberately "blues only" -- the app needs status colours for step
-   chips and validation banners). See docs/STYLING.md.
+   chips and validation banners).
    ============================================ */
 
 :root {
