@@ -1,0 +1,112 @@
+{% extends "app_base.html" %}
+
+{% block title %}{{ t.signup_heading }} · STACOS.ai{% endblock %}
+{% block main_class %} full-bleed{% endblock %}
+{% block body_class %}signin-page{% endblock %}
+{% block topbar %}{% endblock %}
+
+{% block content %}
+<div class="signin-split">
+
+  <div class="signin-panel signin-panel-ink">
+    <div class="signin-slot-top">
+      <a class="signin-wordmark" href="{% url 'accounts:login' %}">
+        <span class="brand-mark"></span>
+        <span>STACOS</span>
+      </a>
+    </div>
+
+    <div class="signin-slot-middle">
+      <div class="eyebrow-mono">COMING Q3 2026</div>
+      <h1 class="signin-headline">The operating system for tax, compliance and finance teams.</h1>
+      <p class="signin-body">Autonomous agents that file your returns, reconcile your books, and respond to notices — quietly, accurately, with a full audit trail.</p>
+      <span class="signin-waitlist">Join the waitlist <span aria-hidden="true">&rarr;</span></span>
+    </div>
+
+    <div class="signin-slot-bottom">
+      <hr class="signin-rule">
+      <div class="trust-line-mono">BUILT BY SKORYDOV &middot; 25 YEARS IN INDIAN TAX TECH</div>
+    </div>
+  </div>
+
+  <div class="signin-panel signin-panel-paper">
+    <div class="signin-slot-top"></div>
+
+    <div class="signin-slot-middle">
+      <div class="signin-form-wrap">
+        <h2 class="signin-card-title">{{ t.signup_heading }}</h2>
+        <p class="signin-card-subtitle">Create your account to get started.</p>
+
+        {% if form.non_field_errors %}
+          <div class="error-summary" role="alert">
+            <ul>
+              {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="signin-field">
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            {{ form.username }}
+            {% if form.username.errors %}<div class="signin-error" id="id_username_error" role="alert">{{ form.username.errors|first }}</div>{% endif %}
+          </div>
+
+          <div class="signin-field">
+            <label for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="signin-error" id="id_email_error" role="alert">{{ form.email.errors|first }}</div>{% endif %}
+          </div>
+
+          <div class="signin-field">
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password }}
+            {% if form.password.errors %}<div class="signin-error" id="id_password_error" role="alert">{{ form.password.errors|first }}</div>{% endif %}
+          </div>
+
+          <div class="signin-field">
+            <label for="{{ form.confirm_password.id_for_label }}">Confirm password</label>
+            {{ form.confirm_password }}
+            {% if form.confirm_password.errors %}<div class="signin-error" id="id_confirm_password_error" role="alert">{{ form.confirm_password.errors|first }}</div>{% endif %}
+          </div>
+
+          <div class="signin-field">
+            <label for="id_captcha_1">Captcha</label>
+            <div class="signin-captcha-row">
+              {{ form.captcha }}
+              <button type="button" id="captcha-refresh" class="signin-captcha-refresh" aria-label="Refresh captcha" title="Refresh captcha">&#8635;</button>
+            </div>
+            {% if form.captcha.errors %}<div class="signin-error" role="alert">{{ form.captcha.errors|first }}</div>{% endif %}
+          </div>
+
+          <button type="submit" class="signin-submit">{{ t.create_account }}</button>
+        </form>
+
+        <p class="signin-switch">Already have an account? <a href="{% url 'accounts:login' %}"><strong>Sign in</strong></a></p>
+      </div>
+    </div>
+
+    <div class="signin-slot-bottom">
+      <div class="trust-line-mono">PROTECTED BY SSO AND 2FA</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var refreshBtn = document.getElementById('captcha-refresh');
+    if (!refreshBtn) return;
+    refreshBtn.addEventListener('click', function () {
+      fetch('{% url "captcha-refresh" %}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          document.getElementById('id_captcha_0').value = data.key;
+          document.querySelector('img.captcha').src = data.image_url;
+        });
+    });
+  });
+</script>
+{% endblock %}

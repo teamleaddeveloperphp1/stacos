@@ -1,4 +1,4 @@
-{% extends "itr1/base.html" %}
+{% extends "itr/base.html" %}
 
 {% block title %}{{ t.screen_validation }}{% endblock %}
 {% block page_title %}{{ t.screen_validation }}{% endblock %}
@@ -58,6 +58,25 @@
 {% endif %}
 
 <p>{{ t.rule_set_label }}: {{ report.ruleSetVersion }} &middot; {{ t.constants_label }}: {{ report.constantsVersion }} &middot; Evaluated: {{ report.rulesEvaluated }} &middot; Skipped: {{ report.rulesSkipped }}</p>
+
+<hr>
+<h2>Verification</h2>
+<p><small>Declaration required by the CBDT schema before the JSON can be generated.</small></p>
+<form method="post">
+  {% csrf_token %}
+  <div class="row">
+    <div class="field">{{ verification_form.assessee_ver_name.label_tag }}{{ verification_form.assessee_ver_name }}{{ verification_form.assessee_ver_name.errors }}</div>
+    <div class="field">{{ verification_form.father_name.label_tag }}{{ verification_form.father_name }}{{ verification_form.father_name.errors }}</div>
+    <div class="field">{{ verification_form.assessee_ver_pan.label_tag }}{{ verification_form.assessee_ver_pan }}{{ verification_form.assessee_ver_pan.errors }}</div>
+  </div>
+  <div class="row">
+    <div class="field">{{ verification_form.capacity.label_tag }}{{ verification_form.capacity }}{{ verification_form.capacity.errors }}</div>
+    <div class="field">{{ verification_form.place.label_tag }}{{ verification_form.place }}{{ verification_form.place.errors }}</div>
+  </div>
+  <div class="actions">
+    <button type="submit" name="action" value="save_verification">{{ t.save }}</button>
+  </div>
+</form>
 
 <hr>
 <form method="post">

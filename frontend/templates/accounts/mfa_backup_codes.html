@@ -1,0 +1,36 @@
+{% extends "app_base.html" %}
+
+{% block title %}{{ t.backup_codes }} · STACOS.ai{% endblock %}
+
+{% block content %}
+<div class="auth-card-wrap">
+  <div class="auth-card">
+    <h1>{{ t.backup_codes }}</h1>
+
+    {% if codes %}
+      <div class="status-msg error">{{ t.backup_codes_warning }}</div>
+      <pre class="mono" id="backup-codes-list" style="background: var(--off-white); padding: 16px; border-radius: 6px;">{% for c in codes %}{{ c }}
+{% endfor %}</pre>
+      <div class="flex-row">
+        <button type="button" class="btn btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('backup-codes-list').textContent)">{{ t.copy_all }}</button>
+        <a class="btn btn-sm" download="backup-codes.txt" href="data:text/plain;charset=utf-8,{% for c in codes %}{{ c }}%0A{% endfor %}">{{ t.download_as_txt }}</a>
+        <button type="button" class="btn btn-sm" onclick="window.print()">{{ t.print_label }}</button>
+      </div>
+
+      <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <div class="field">
+          <label>{{ form.confirmed_saved }} {{ form.confirmed_saved.label }}</label>
+          {{ form.confirmed_saved.errors }}
+        </div>
+        <div class="actions">
+          <button type="submit">{{ t.continue_label }}</button>
+        </div>
+      </form>
+    {% else %}
+      <p>{{ remaining_count }} {{ t.backup_codes_remaining }}</p>
+      <a class="btn" href="{% url 'accounts:settings' %}">{{ t.back_to_dashboard }}</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

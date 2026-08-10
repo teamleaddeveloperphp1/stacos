@@ -1,4 +1,4 @@
-{% extends "itr1/base.html" %}
+{% extends "itr/base.html" %}
 
 {% block title %}{{ t.screen_tax_liability }}{% endblock %}
 {% block page_title %}{{ t.screen_tax_liability }}{% endblock %}
@@ -6,6 +6,15 @@
 {% block content %}
 {% if conflict_message %}
   <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+{% if report.errors %}
+  <div class="finding" role="alert">
+    <strong>{{ report.errors|length }} error(s) found — fix these before Confirm will succeed:</strong>
+    <ul>
+      {% for f in report.errors %}<li><span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }} <em>{{ f.remediation }}</em></li>{% endfor %}
+    </ul>
+  </div>
 {% endif %}
 
 
@@ -24,8 +33,8 @@
     Normal-rate tax: &#8377;{{ tax.normalRateTax }} &middot; Special-rate (LTCG 112A) tax: &#8377;{{ tax.specialRateTax }}
     {% if tax.rebate87AMarginalRelief %} &middot; Marginal relief considered: &#8377;{{ tax.rebate87AMarginalRelief }}{% endif %}
   </small></p>
-  {% include "itr1/_trace_drawer.html" with trace=tax.traceTax %}
-  {% include "itr1/_trace_drawer.html" with trace=tax.traceRebate %}
+  {% include "itr/_trace_drawer.html" with trace=tax.traceTax %}
+  {% include "itr/_trace_drawer.html" with trace=tax.traceRebate %}
 </fieldset>
 
 <form method="post">
@@ -51,7 +60,7 @@
       {{ form.interest234AOverride }}{{ form.interest234AOverride.errors }}
     </div>
     <p><small>Amount used: &#8377;{{ interest.interest234A }}</small></p>
-    {% include "itr1/_trace_drawer.html" with trace=interest.trace234A %}
+    {% include "itr/_trace_drawer.html" with trace=interest.trace234A %}
   </fieldset>
 
   <fieldset id="d8">
@@ -63,13 +72,13 @@
       {{ form.interest234BOverride }}{{ form.interest234BOverride.errors }}
     </div>
     <p><small>Amount used: &#8377;{{ interest.interest234B }}</small></p>
-    {% include "itr1/_trace_drawer.html" with trace=interest.trace234B %}
+    {% include "itr/_trace_drawer.html" with trace=interest.trace234B %}
   </fieldset>
 
   <fieldset id="d9">
     <legend>D9 &mdash; Interest u/s 234C (computed, read-only)</legend>
     <div class="computed-line"><span>Interest u/s 234C</span><span class="val">&#8377;{{ interest.interest234C }}</span></div>
-    {% include "itr1/_trace_drawer.html" with trace=interest.trace234C %}
+    {% include "itr/_trace_drawer.html" with trace=interest.trace234C %}
   </fieldset>
 
   <fieldset id="d10">
@@ -81,13 +90,13 @@
       {{ form.fee234FOverride }}{{ form.fee234FOverride.errors }}
     </div>
     <p><small>Amount used: &#8377;{{ interest.fee234F }}</small></p>
-    {% include "itr1/_trace_drawer.html" with trace=interest.trace234F %}
+    {% include "itr/_trace_drawer.html" with trace=interest.trace234F %}
   </fieldset>
 
   <fieldset id="d10a">
     <legend>D10a &mdash; Fee u/s 234-I (computed, read-only)</legend>
     <div class="computed-line"><span>Fee for furnishing a revised return u/s 234-I</span><span class="val">&#8377;{{ interest.fee234I }}</span></div>
-    {% include "itr1/_trace_drawer.html" with trace=interest.trace234I %}
+    {% include "itr/_trace_drawer.html" with trace=interest.trace234I %}
   </fieldset>
 
   <fieldset id="d11">

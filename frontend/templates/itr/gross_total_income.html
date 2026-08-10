@@ -1,4 +1,4 @@
-{% extends "itr1/base.html" %}
+{% extends "itr/base.html" %}
 
 {% block title %}{{ t.screen_gross_total_income }}{% endblock %}
 {% block page_title %}{{ t.screen_gross_total_income }}{% endblock %}
@@ -6,6 +6,15 @@
 {% block content %}
 {% if conflict_message %}
   <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+{% if report.errors %}
+  <div class="finding" role="alert">
+    <strong>{{ report.errors|length }} error(s) found — fix these before Confirm will succeed:</strong>
+    <ul>
+      {% for f in report.errors %}<li><span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }} <em>{{ f.remediation }}</em></li>{% endfor %}
+    </ul>
+  </div>
 {% endif %}
 
 
@@ -32,7 +41,7 @@
       <div class="field">{{ salary_form.professional_tax_16iii.label_tag }}{{ salary_form.professional_tax_16iii }}{{ salary_form.professional_tax_16iii.errors }}</div>
     </div>
     <p><small>Standard deduction u/s 16(ia) is computed automatically: &#8377;{{ computed.salary.standardDeduction16ia }}</small></p>
-    {% include "itr1/_trace_drawer.html" with trace=computed.salary.traceStandardDeduction %}
+    {% include "itr/_trace_drawer.html" with trace=computed.salary.traceStandardDeduction %}
 
     <p><strong>Exempt Allowances u/s 10</strong></p>
     {{ allowance_formset.management_form }}
@@ -40,11 +49,11 @@
       <div class="row formset-row">
         <div class="field">{{ allow_form.nature.label_tag }}{{ allow_form.nature }}{{ allow_form.nature.errors }}</div>
         <div class="field">{{ allow_form.amount.label_tag }}{{ allow_form.amount }}{{ allow_form.amount.errors }}</div>
-        {% if allow_form.DELETE %}<div class="field">{{ allow_form.DELETE.label_tag }}{{ allow_form.DELETE }}</div>{% endif %}
+        {% if allow_form.DELETE %}{% if forloop.counter0 < allowance_formset.initial_form_count %}<div class="field">{{ allow_form.DELETE.label_tag }}{{ allow_form.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>HRA u/s 10(13A) eligible exemption (computed from the 10(13A) schedule, not yet entered in this pass): &#8377;{{ computed.hra.eligibleExemption }}</small></p>
-    {% include "itr1/_trace_drawer.html" with trace=computed.hra.trace %}
+    {% include "itr/_trace_drawer.html" with trace=computed.hra.trace %}
   </fieldset>
 
   <fieldset id="b2">
@@ -54,15 +63,23 @@
     {% for hp_form in property_formset %}
       <div class="row formset-row">
         <div class="field">{{ hp_form.property_type.label_tag }}{{ hp_form.property_type }}{{ hp_form.property_type.errors }}</div>
+        <div class="field">{{ hp_form.property_owner.label_tag }}{{ hp_form.property_owner }}{{ hp_form.property_owner.errors }}</div>
         <div class="field">{{ hp_form.co_owned.label_tag }}{{ hp_form.co_owned }}{{ hp_form.co_owned.errors }}</div>
         <div class="field">{{ hp_form.assessee_share_percent.label_tag }}{{ hp_form.assessee_share_percent }}{{ hp_form.assessee_share_percent.errors }}</div>
+      </div>
+      <div class="row formset-row">
+        <div class="field">{{ hp_form.flat_door_building.label_tag }}{{ hp_form.flat_door_building }}{{ hp_form.flat_door_building.errors }}</div>
+        <div class="field">{{ hp_form.area_locality.label_tag }}{{ hp_form.area_locality }}{{ hp_form.area_locality.errors }}</div>
+        <div class="field">{{ hp_form.town_city_district.label_tag }}{{ hp_form.town_city_district }}{{ hp_form.town_city_district.errors }}</div>
+        <div class="field">{{ hp_form.state_code.label_tag }}{{ hp_form.state_code }}{{ hp_form.state_code.errors }}</div>
+        <div class="field">{{ hp_form.pin_code.label_tag }}{{ hp_form.pin_code }}{{ hp_form.pin_code.errors }}</div>
       </div>
       <div class="row formset-row">
         <div class="field">{{ hp_form.gross_rent.label_tag }}{{ hp_form.gross_rent }}{{ hp_form.gross_rent.errors }}</div>
         <div class="field">{{ hp_form.local_taxes.label_tag }}{{ hp_form.local_taxes }}{{ hp_form.local_taxes.errors }}</div>
         <div class="field">{{ hp_form.rent_not_realized.label_tag }}{{ hp_form.rent_not_realized }}{{ hp_form.rent_not_realized.errors }}</div>
         <div class="field">{{ hp_form.interest_on_borrowed_capital.label_tag }}{{ hp_form.interest_on_borrowed_capital }}{{ hp_form.interest_on_borrowed_capital.errors }}</div>
-        {% if hp_form.DELETE %}<div class="field">{{ hp_form.DELETE.label_tag }}{{ hp_form.DELETE }}</div>{% endif %}
+        {% if hp_form.DELETE %}{% if forloop.counter0 < property_formset.initial_form_count %}<div class="field">{{ hp_form.DELETE.label_tag }}{{ hp_form.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
   </fieldset>
@@ -75,7 +92,7 @@
       <div class="row formset-row">
         <div class="field">{{ os_form.nature.label_tag }}{{ os_form.nature }}{{ os_form.nature.errors }}</div>
         <div class="field">{{ os_form.amount.label_tag }}{{ os_form.amount }}{{ os_form.amount.errors }}</div>
-        {% if os_form.DELETE %}<div class="field">{{ os_form.DELETE.label_tag }}{{ os_form.DELETE }}</div>{% endif %}
+        {% if os_form.DELETE %}{% if forloop.counter0 < other_source_formset.initial_form_count %}<div class="field">{{ os_form.DELETE.label_tag }}{{ os_form.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
   </fieldset>
@@ -89,7 +106,7 @@
         <div class="field">{{ ei_form.sub_category.label_tag }}{{ ei_form.sub_category }}{{ ei_form.sub_category.errors }}</div>
         <div class="field">{{ ei_form.description.label_tag }}{{ ei_form.description }}{{ ei_form.description.errors }}</div>
         <div class="field">{{ ei_form.amount.label_tag }}{{ ei_form.amount }}{{ ei_form.amount.errors }}</div>
-        {% if ei_form.DELETE %}<div class="field">{{ ei_form.DELETE.label_tag }}{{ ei_form.DELETE }}</div>{% endif %}
+        {% if ei_form.DELETE %}{% if forloop.counter0 < exempt_income_formset.initial_form_count %}<div class="field">{{ ei_form.DELETE.label_tag }}{{ ei_form.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
   </fieldset>

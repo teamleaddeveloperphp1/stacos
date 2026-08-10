@@ -1,4 +1,4 @@
-{% extends "itr1/base.html" %}
+{% extends "itr/base.html" %}
 
 {% block title %}{{ t.screen_tax_paid }}{% endblock %}
 {% block page_title %}{{ t.screen_tax_paid }}{% endblock %}
@@ -6,6 +6,15 @@
 {% block content %}
 {% if conflict_message %}
   <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+{% if report.errors %}
+  <div class="finding" role="alert">
+    <strong>{{ report.errors|length }} error(s) found — fix these before Confirm will succeed:</strong>
+    <ul>
+      {% for f in report.errors %}<li><span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }} <em>{{ f.remediation }}</em></li>{% endfor %}
+    </ul>
+  </div>
 {% endif %}
 
 
@@ -32,7 +41,7 @@
         <div class="field">{{ f.deductor_name.label_tag }}{{ f.deductor_name }}{{ f.deductor_name.errors }}</div>
         <div class="field">{{ f.income_chargeable_salary.label_tag }}{{ f.income_chargeable_salary }}{{ f.income_chargeable_salary.errors }}</div>
         <div class="field">{{ f.total_tax_deducted.label_tag }}{{ f.total_tax_deducted }}{{ f.total_tax_deducted.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < tds1_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tds1 }}</small></p>
@@ -53,7 +62,7 @@
         <div class="field">{{ f.tds_claimed_this_year.label_tag }}{{ f.tds_claimed_this_year }}{{ f.tds_claimed_this_year.errors }}</div>
         <div class="field">{{ f.tds_section.label_tag }}{{ f.tds_section }}{{ f.tds_section.errors }}</div>
         <div class="field">{{ f.head_of_income.label_tag }}{{ f.head_of_income }}{{ f.head_of_income.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < tds2_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tds2 }}</small></p>
@@ -75,7 +84,7 @@
         <div class="field">{{ f.tds_claimed_this_year.label_tag }}{{ f.tds_claimed_this_year }}{{ f.tds_claimed_this_year.errors }}</div>
         <div class="field">{{ f.tds_section.label_tag }}{{ f.tds_section }}{{ f.tds_section.errors }}</div>
         <div class="field">{{ f.head_of_income.label_tag }}{{ f.head_of_income }}{{ f.head_of_income.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < tds3_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tds3 }}</small></p>
@@ -91,7 +100,7 @@
         <div class="field">{{ f.tax_collected.label_tag }}{{ f.tax_collected }}{{ f.tax_collected.errors }}</div>
         <div class="field">{{ f.collected_year.label_tag }}{{ f.collected_year }}{{ f.collected_year.errors }}</div>
         <div class="field">{{ f.tcs_claimed_this_year.label_tag }}{{ f.tcs_claimed_this_year }}{{ f.tcs_claimed_this_year.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < tcs_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tcs }}</small></p>
@@ -108,7 +117,7 @@
         <div class="field">{{ f.date_of_deposit.label_tag }}{{ f.date_of_deposit }}{{ f.date_of_deposit.errors }}</div>
         <div class="field">{{ f.challan_serial_no.label_tag }}{{ f.challan_serial_no }}{{ f.challan_serial_no.errors }}</div>
         <div class="field">{{ f.amount.label_tag }}{{ f.amount }}{{ f.amount.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < challan_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>Advance tax (derived): &#8377;{{ computed.taxesPaid.advanceTax }} &middot;

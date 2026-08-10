@@ -1,0 +1,73 @@
+/* ============================================
+   STACOS.ai design tokens
+   Extracted verbatim from the marketing stylesheet's :root block, plus
+   semantic status tokens the marketing palette doesn't have (it is
+   deliberately "blues only" -- the app needs status colours for step
+   chips and validation banners). See docs/STYLING.md.
+   ============================================ */
+
+:root {
+  /* Surfaces (marketing) */
+  --white: #FFFFFF;
+  --off-white: #FAFAFB;
+  --grey-50: #F5F6F8;
+  --grey-100: #ECEEF2;
+  --grey-200: #DDE0E6;
+  --grey-300: #B5BAC2;
+  --grey-500: #6B7280;
+  --grey-700: #2A2D33;
+  --ink: #0A0B0D;
+
+  /* Brand -- blues only (marketing) */
+  --blue: #003DA5;
+  --blue-dark: #001E5C;
+  --blue-bright: #1A56E8;
+  --blue-light: #EEF2FB;
+
+  /* System (marketing) */
+  --rule: #E5E7EC;
+  --shadow-sm: 0 1px 2px rgba(10, 11, 13, 0.06);
+  --shadow-md: 0 4px 16px -4px rgba(10, 11, 13, 0.08);
+  --shadow-lg: 0 24px 60px -20px rgba(10, 11, 13, 0.18);
+
+  /* Type scale (marketing). IBM Plex Sans has no Devanagari glyphs, so Noto
+     Sans Devanagari is added to the stack for the Hindi UI -- without it,
+     हिन्दी text would silently fall through to the browser's system font. */
+  --font-sans: 'IBM Plex Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* ---- App-only additions below: not in the marketing palette ---- */
+
+  /* Status tokens -- desaturated so they sit correctly next to the navy;
+     deliberately not stock Bootstrap green/red. Used by chips, banners,
+     validation rows. */
+  --ok: #0F7B4F;      --ok-bg: #EAF5F0;      --ok-border: #BFDFCE;
+  --warn: #8A5A00;    --warn-bg: #FDF6E7;    --warn-border: #EBD9AC;
+  --err: #A8232B;     --err-bg: #FBEDEE;     --err-border: #E8C2C5;
+  --neutral: var(--grey-500); --neutral-bg: var(--grey-100); --neutral-border: var(--rule);
+
+  /* Dense-form spacing/radius -- the marketing 100px section rhythm is
+     wrong for a form-heavy screen with 40+ fields. */
+  --card-gap: 20px;
+  --card-pad: 24px;
+  --field-gap: 16px;
+  --radius: 4px;
+
+  /* ---- Sign-in / pre-launch split page only (see the /design spec) ----
+     A deliberately separate two-surface, one-accent palette for this one
+     page -- not meant to replace --blue/--ink app-wide. */
+  --signin-ink-900: #0A2240;
+  --signin-ink-700: #153A63;
+  --signin-ink-100: #D6E4F5;
+  --signin-ink-050: #EDF3FA;
+  --signin-paper: #FFFFFF;
+  --signin-paper-tint: #F7F9FC;
+  --signin-slate-900: #101828;
+  --signin-slate-500: #5A6478;
+  --signin-slate-300: #D2D8E3;
+  --signin-accent: #12467F;
+  --signin-accent-hover: #0D3663;
+  --signin-danger: #B42318;
+  --signin-radius: 8px;
+  --signin-radius-lg: 12px;
+}

@@ -2,11 +2,17 @@
 <html lang="{{ current_locale|default:'en' }}">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ t.app_name }}{% endblock %} · stacos.ai</title>
-  <link rel="stylesheet" href="{% static 'itr1/css/main.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'itr/css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'itr/css/app.css' %}">
 </head>
-<body>
-  <nav class="itr1-menu">
+<body class="app-shell">
+  <nav class="itr-menu">
+    <a class="dashboard-link" href="{% url 'itr:return_list' %}">&larr; Back</a>
     <h2>{{ t.app_name }} &middot; {{ t.ay_label }} {{ ay|default:"2026-27" }}</h2>
     {% if taxpayer_name %}
       <div class="menu-taxpayer">{{ taxpayer_name }} &middot; {{ taxpayer_pan }}</div>
@@ -23,15 +29,15 @@
     </ul>
     <div class="lang-switcher">
       {{ t.language }}:
-      <a href="{% url 'itr1:set_locale' 'en' %}"{% if current_locale == 'en' %} class="lang-active"{% endif %}>{{ t.language_english }}</a>
+      <a href="{% url 'itr:set_locale' 'en' %}"{% if current_locale == 'en' %} class="lang-active"{% endif %}>{{ t.language_english }}</a>
       &middot;
-      <a href="{% url 'itr1:set_locale' 'hi' %}"{% if current_locale == 'hi' %} class="lang-active"{% endif %}>{{ t.language_hindi }}</a>
+      <a href="{% url 'itr:set_locale' 'hi' %}"{% if current_locale == 'hi' %} class="lang-active"{% endif %}>{{ t.language_hindi }}</a>
     </div>
   </nav>
-  <main>
-    <p class="breadcrumb">{{ t.dashboard }} &rsaquo; <a href="{% url 'itr1:return_list' %}">{{ t.returns }}</a> &rsaquo; {{ t.app_name }} {{ t.ay_label }} {{ ay|default:"2026-27" }} &rsaquo; {% block breadcrumb_page %}{{ page_title }}{% endblock %}</p>
+  <main class="itr-main">
+    <p class="breadcrumb">{{ t.dashboard }} &rsaquo; <a href="{% url 'itr:return_list' %}">{{ t.returns }}</a> &rsaquo; {{ t.app_name }} {{ t.ay_label }} {{ ay|default:"2026-27" }} &rsaquo; {% block breadcrumb_page %}{{ page_title }}{% endblock %}</p>
 
-    <header class="itr1-header">
+    <header class="itr-header">
       {% block header %}
         <div class="header-row">
           <h1>{% block page_title %}{{ t.app_name }}{% endblock %}</h1>
@@ -52,7 +58,7 @@
     {% block content %}{% endblock %}
 
     {% if rule_set_version %}
-      <footer class="itr1-footer">
+      <footer class="itr-footer">
         {{ t.rule_set_label }} {{ rule_set_version }} &middot; {{ t.schema_label }} {{ schema_version }} &middot; {{ t.constants_label }} {{ constants_version }}
         &middot; {{ t.draft_label }} v{{ draft_version }}, {{ t.saved_label }} {{ draft_updated_at|date:"H:i" }}
       </footer>

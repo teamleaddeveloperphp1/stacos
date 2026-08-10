@@ -1,4 +1,4 @@
-{% extends "itr1/base.html" %}
+{% extends "itr/base.html" %}
 
 {% block title %}{{ t.screen_total_deductions }}{% endblock %}
 {% block page_title %}{{ t.screen_total_deductions }}{% endblock %}
@@ -6,6 +6,15 @@
 {% block content %}
 {% if conflict_message %}
   <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+{% if report.errors %}
+  <div class="finding" role="alert">
+    <strong>{{ report.errors|length }} error(s) found — fix these before Confirm will succeed:</strong>
+    <ul>
+      {% for f in report.errors %}<li><span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }} <em>{{ f.remediation }}</em></li>{% endfor %}
+    </ul>
+  </div>
 {% endif %}
 
 
@@ -45,7 +54,7 @@
       <div class="row formset-row">
         <div class="field">{{ f.identification_no.label_tag }}{{ f.identification_no }}{{ f.identification_no.errors }}</div>
         <div class="field">{{ f.amount.label_tag }}{{ f.amount }}{{ f.amount.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80c_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
 
@@ -55,7 +64,7 @@
       <div class="row formset-row">
         <div class="field">{{ f.name_of_identifier.label_tag }}{{ f.name_of_identifier }}{{ f.name_of_identifier.errors }}</div>
         <div class="field">{{ f.amount.label_tag }}{{ f.amount }}{{ f.amount.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80ccc_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>80C total (derived from schedule): &#8377;{{ computed.deductions.schedule80CTotal }} &middot;
@@ -156,7 +165,7 @@
         <div class="field">{{ f.loan_account_no.label_tag }}{{ f.loan_account_no }}{{ f.loan_account_no.errors }}</div>
         <div class="field">{{ f.date_of_loan.label_tag }}{{ f.date_of_loan }}{{ f.date_of_loan.errors }}</div>
         <div class="field">{{ f.interest.label_tag }}{{ f.interest }}{{ f.interest.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80e_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
 
@@ -168,7 +177,7 @@
         <div class="field">{{ f.loan_account_no.label_tag }}{{ f.loan_account_no }}{{ f.loan_account_no.errors }}</div>
         <div class="field">{{ f.date_of_loan.label_tag }}{{ f.date_of_loan }}{{ f.date_of_loan.errors }}</div>
         <div class="field">{{ f.interest.label_tag }}{{ f.interest }}{{ f.interest.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80ee_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
 
@@ -183,7 +192,7 @@
         <div class="field">{{ f.loan_account_no.label_tag }}{{ f.loan_account_no }}{{ f.loan_account_no.errors }}</div>
         <div class="field">{{ f.date_of_loan.label_tag }}{{ f.date_of_loan }}{{ f.date_of_loan.errors }}</div>
         <div class="field">{{ f.interest.label_tag }}{{ f.interest }}{{ f.interest.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80eea_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
 
@@ -195,7 +204,7 @@
         <div class="field">{{ f.loan_account_no.label_tag }}{{ f.loan_account_no }}{{ f.loan_account_no.errors }}</div>
         <div class="field">{{ f.date_of_loan.label_tag }}{{ f.date_of_loan }}{{ f.date_of_loan.errors }}</div>
         <div class="field">{{ f.interest.label_tag }}{{ f.interest }}{{ f.interest.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80eeb_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
   </fieldset>
@@ -219,7 +228,7 @@
         <div class="field">{{ f.donation_other_mode.label_tag }}{{ f.donation_other_mode }}{{ f.donation_other_mode.errors }}</div>
         <div class="field">{{ f.ifsc.label_tag }}{{ f.ifsc }}{{ f.ifsc.errors }}</div>
         <div class="field">{{ f.transaction_ref_no.label_tag }}{{ f.transaction_ref_no }}{{ f.transaction_ref_no.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80g_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
     <p><small>Eligible amount per Schedule 80G: &#8377;{{ computed.deductions.schedule80G.totalEligible }}</small></p>
@@ -246,7 +255,7 @@
         <div class="field">{{ f.pan.label_tag }}{{ f.pan }}{{ f.pan.errors }}</div>
         <div class="field">{{ f.donation_cash.label_tag }}{{ f.donation_cash }}{{ f.donation_cash.errors }}</div>
         <div class="field">{{ f.donation_other_mode.label_tag }}{{ f.donation_other_mode }}{{ f.donation_other_mode.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80gga_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
   </fieldset>
@@ -264,7 +273,7 @@
         <div class="field">{{ f.political_party_pan.label_tag }}{{ f.political_party_pan }}{{ f.political_party_pan.errors }}</div>
         <div class="field">{{ f.donation_cash.label_tag }}{{ f.donation_cash }}{{ f.donation_cash.errors }}</div>
         <div class="field">{{ f.donation_other_mode.label_tag }}{{ f.donation_other_mode }}{{ f.donation_other_mode.errors }}</div>
-        {% if f.DELETE %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}
+        {% if f.DELETE %}{% if forloop.counter0 < sched80ggc_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
   </fieldset>

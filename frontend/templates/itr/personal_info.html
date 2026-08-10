@@ -1,4 +1,4 @@
-{% extends "itr1/base.html" %}
+{% extends "itr/base.html" %}
 
 {% block title %}{{ t.screen_personal_info }}{% endblock %}
 {% block page_title %}{{ t.screen_personal_info }}{% endblock %}
@@ -6,6 +6,15 @@
 {% block content %}
 {% if conflict_message %}
   <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+{% if report.errors %}
+  <div class="finding" role="alert">
+    <strong>{{ report.errors|length }} error(s) found — fix these before Confirm will succeed:</strong>
+    <ul>
+      {% for f in report.errors %}<li><span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }} <em>{{ f.remediation }}</em></li>{% endfor %}
+    </ul>
+  </div>
 {% endif %}
 
 
@@ -116,7 +125,8 @@
   </fieldset>
 
   <fieldset id="bankDetails">
-    <legend>{{ t.section_bank_details }}</legend>
+    <legend>{{ t.section_bank_details }} <span class="required-marker">*</span></legend>
+    <p class="helper-text">At least one bank account is required, with exactly one nominated for refund.</p>
     {% if bank_errors %}
       <ul class="errorlist">
         {% for e in bank_errors %}<li>{{ e }}</li>{% endfor %}
@@ -130,7 +140,13 @@
         <div class="field">{{ bank_form.account_number.label_tag }}{{ bank_form.account_number }}{{ bank_form.account_number.errors }}</div>
         <div class="field">{{ bank_form.account_type.label_tag }}{{ bank_form.account_type }}{{ bank_form.account_type.errors }}</div>
         <div class="field">{{ bank_form.nominate_for_refund.label_tag }}{{ bank_form.nominate_for_refund }}</div>
-        {% if bank_form.DELETE %}<div class="field">{{ bank_form.DELETE.label_tag }}{{ bank_form.DELETE }}</div>{% endif %}
+        {% if bank_form.DELETE %}
+          {% if forloop.counter0 < formset.initial_form_count %}
+            <div class="field">{{ bank_form.DELETE.label_tag }}{{ bank_form.DELETE }}</div>
+          {% else %}
+            <div class="field"><small>Leave blank if you don't want to add another account.</small></div>
+          {% endif %}
+        {% endif %}
       </div>
     {% endfor %}
   </fieldset>

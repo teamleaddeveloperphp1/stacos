@@ -2,24 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Your ITR-1 Returns · stacos.ai</title>
-  <link rel="stylesheet" href="{% static 'itr1/css/main.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'itr/css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'itr/css/app.css' %}">
 </head>
 <body class="dashboard-body">
   <main class="dashboard">
     <header class="dashboard-header">
       <div>
-        <p class="breadcrumb">Dashboard &rsaquo; Returns</p>
+        <p class="breadcrumb"><a href="{% url 'services:dashboard' %}">Dashboard</a> &rsaquo; Returns</p>
         <h1>ITR-1 &middot; AY 2026-27</h1>
         <p class="dashboard-sub">Prepare, validate and generate a CBDT-ready ITR-1 JSON.</p>
       </div>
-      <a class="btn btn-primary" href="{% url 'itr1:return_create' %}">+ Start a new return</a>
+      <div class="flex-row">
+        <a class="btn" href="{% url 'services:dashboard' %}">&larr; Back</a>
+        <a class="btn btn-primary" href="{% url 'itr:return_create' %}">+ Start a new return</a>
+      </div>
     </header>
 
     {% if cards %}
     <div class="dashboard-grid">
       {% for card in cards %}
-      <a class="return-card" href="{% url 'itr1:personal_info' card.obj.pk %}">
+      <a class="return-card" href="{% url 'itr:personal_info' card.obj.pk %}">
         <div class="return-card-top">
           <span class="return-card-name">{{ card.taxpayer_name }}</span>
           <span class="regime-badge regime-{{ card.regime|lower }}">{% if card.regime == 'OLD' %}OLD REGIME{% else %}NEW REGIME{% endif %}</span>
@@ -42,7 +50,7 @@
     <div class="dashboard-empty">
       <h2>No returns yet</h2>
       <p>Start your first ITR-1 return for AY 2026-27 &mdash; seven guided screens, full validation and a CBDT-ready JSON at the end.</p>
-      <a class="btn btn-primary" href="{% url 'itr1:return_create' %}">+ Start a new return</a>
+      <a class="btn btn-primary" href="{% url 'itr:return_create' %}">+ Start a new return</a>
     </div>
     {% endif %}
   </main>
