@@ -68,19 +68,11 @@ class MfaSetupCodeForm(forms.Form):
 
 
 class MfaVerifyForm(forms.Form):
-    """§5.3: one input, TOTP code or backup code -- format decides which."""
+    """§5.3: the 6-digit TOTP code from the user's authenticator app."""
 
     code = forms.CharField(
         label=_('Code'),
         widget=forms.TextInput(attrs={'inputmode': 'numeric', 'autocomplete': 'one-time-code'}),
-    )
-
-
-class BackupCodesConfirmForm(forms.Form):
-    confirmed_saved = forms.BooleanField(
-        label=_('I have saved my backup codes'),
-        required=True,
-        error_messages={'required': _('Confirm you have saved your backup codes before continuing.')},
     )
 
 

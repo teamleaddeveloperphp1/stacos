@@ -1,15 +1,11 @@
 import base64
 import io
 import re
-import secrets
-import string
 
 import qrcode
-from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 _TOTP_CODE_RE = re.compile(r'^\d{6}$')
-_BACKUP_ALPHABET = string.ascii_uppercase + string.digits
 
 
 def qr_data_uri(data):
@@ -33,48 +29,21 @@ def get_or_create_setup_device(user):
     return device
 
 
-def _new_backup_code():
-    chars = ''.join(secrets.choice(_BACKUP_ALPHABET) for _ in range(8))
-    return f'{chars[:4]}-{chars[4:]}'
-
-
-def generate_backup_codes(user, count=10):
-    """§5.2: regenerating always invalidates every previous code -- delete
-    the old device (and its tokens) outright rather than topping up."""
-    StaticDevice.objects.filter(user=user, name='backup').delete()
-    device = StaticDevice.objects.create(user=user, name='backup', confirmed=True)
-    codes = [_new_backup_code() for _ in range(count)]
-    StaticToken.objects.bulk_create(StaticToken(device=device, token=code) for code in codes)
-    return codes
-
-
 def is_totp_format(code):
     return bool(_TOTP_CODE_RE.match(code.strip()))
 
 
 def find_verified_device(user, raw_code):
-    """§5.3: one input, detect TOTP (6 digits) vs backup code (anything
-    else) by format. Returns the device that accepted the code (already
-    consuming a backup token as a side effect) or None. Marking the session
-    OTP-verified is the caller's job -- it has to happen *after*
-    django.contrib.auth.login() sets request.user, since django_otp.login()
-    is a no-op until request.user matches the device's owner."""
+    """§5.3: verifies a 6-digit TOTP code. Returns the device that accepted
+    the code or None. Marking the session OTP-verified is the caller's job --
+    it has to happen *after* django.contrib.auth.login() sets request.user,
+    since django_otp.login() is a no-op until request.user matches the
+    device's owner."""
     code = (raw_code or '').strip()
-    if not code:
+    if not code or not is_totp_format(code):
         return None
 
-    if is_totp_format(code):
-        device = TOTPDevice.objects.filter(user=user, confirmed=True).first()
-        if device and device.verify_token(code):
-            return device
-        return None
-
-    normalized = code.replace('-', '').replace(' ', '').upper()
-    device = StaticDevice.objects.filter(user=user, name='backup', confirmed=True).first()
-    if not device:
-        return None
-    for token in device.token_set.all():
-        if token.token.replace('-', '').upper() == normalized:
-            token.delete()  # single-use
-            return device
+    device = TOTPDevice.objects.filter(user=user, confirmed=True).first()
+    if device and device.verify_token(code):
+        return device
     return None

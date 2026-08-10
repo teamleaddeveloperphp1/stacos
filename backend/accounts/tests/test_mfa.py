@@ -5,10 +5,9 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
-from django_otp.plugins.otp_static.models import StaticDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
-from accounts.mfa import base32_secret, generate_backup_codes
+from accounts.mfa import base32_secret
 from accounts.models import MfaEnrollment, Profile
 
 User = get_user_model()
@@ -29,13 +28,13 @@ class MfaSetupTests(TestCase):
         device = TOTPDevice.objects.get(user=self.user, name='default')
         self.assertFalse(device.confirmed)
 
-    def test_valid_code_confirms_device_and_shows_backup_codes(self):
+    def test_valid_code_confirms_device_and_redirects_to_dashboard(self):
         self.client.get(reverse('accounts:mfa_setup'))
         device = TOTPDevice.objects.get(user=self.user, name='default')
         code = self._totp_for_device(device).now()
 
         response = self.client.post(reverse('accounts:mfa_setup'), {'code': code})
-        self.assertRedirects(response, reverse('accounts:mfa_backup_codes'))
+        self.assertRedirects(response, reverse('services:dashboard'))
 
         device.refresh_from_db()
         self.assertTrue(device.confirmed)
@@ -51,9 +50,6 @@ class MfaSetupTests(TestCase):
         device = TOTPDevice.objects.get(user=self.user, name='default')
         code = self._totp_for_device(device).now()
         self.client.post(reverse('accounts:mfa_setup'), {'code': code})
-
-        response = self.client.post(reverse('accounts:mfa_backup_codes'), {'confirmed_saved': 'on'})
-        self.assertRedirects(response, reverse('services:dashboard'))
 
         dashboard = self.client.get(reverse('services:dashboard'))
         self.assertEqual(dashboard.status_code, 200)
@@ -87,26 +83,6 @@ class MfaSetupTests(TestCase):
         self.assertFalse(TOTPDevice.objects.filter(pk=device.pk).exists())
 
 
-class BackupCodeTests(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='b@example.com', email='b@example.com', password='x')
-
-    def test_backup_code_works_once_and_only_once(self):
-        codes = generate_backup_codes(self.user)
-        device = StaticDevice.objects.get(user=self.user, name='backup')
-        first = device.token_set.first().token
-        self.assertTrue(device.verify_token(first))
-        self.assertFalse(device.verify_token(first))
-        self.assertEqual(len(codes), 10)
-
-    def test_regeneration_invalidates_old_codes(self):
-        first_batch = generate_backup_codes(self.user)
-        second_batch = generate_backup_codes(self.user)
-        device = StaticDevice.objects.get(user=self.user, name='backup')
-        self.assertFalse(device.verify_token(first_batch[0]))
-        self.assertTrue(device.verify_token(second_batch[0]))
-
-
 class MfaLoginIntegrationTests(TestCase):
     def setUp(self):
         cache.clear()
@@ -133,24 +109,6 @@ class MfaLoginIntegrationTests(TestCase):
         self.client.post(reverse('accounts:mfa_verify'), {'code': code})
         response = self.client.get(reverse('services:dashboard'))
         self.assertEqual(response.status_code, 200)
-
-    def test_verify_with_backup_code_completes_login(self):
-        codes = generate_backup_codes(self.user)
-        self._login_to_pending()
-        response = self.client.post(reverse('accounts:mfa_verify'), {'code': codes[0]})
-        self.assertRedirects(response, reverse('services:dashboard'))
-        self.assertIn('_auth_user_id', self.client.session)
-
-    def test_backup_code_cannot_be_reused_at_login(self):
-        codes = generate_backup_codes(self.user)
-        self._login_to_pending()
-        self.client.post(reverse('accounts:mfa_verify'), {'code': codes[0]})
-        self.client.logout()
-
-        self._login_to_pending()
-        response = self.client.post(reverse('accounts:mfa_verify'), {'code': codes[0]})
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_five_failed_verify_attempts_clears_pending_and_bounces_to_login(self):
         self._login_to_pending()

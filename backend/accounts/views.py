@@ -16,11 +16,9 @@ from django.views import View
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import FormView, TemplateView
 import django_otp
-from django_otp.plugins.otp_static.models import StaticDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from accounts.forms import (
-    BackupCodesConfirmForm,
     ChangePasswordForm,
     DeleteAccountForm,
     LanguageForm,
@@ -32,7 +30,7 @@ from accounts.forms import (
     SignUpForm,
 )
 from accounts.i18n_translate import translate
-from accounts.mfa import base32_secret, find_verified_device, generate_backup_codes, get_or_create_setup_device, qr_data_uri
+from accounts.mfa import base32_secret, find_verified_device, get_or_create_setup_device, qr_data_uri
 from accounts.models import MfaEnrollment, get_profile, log_auth_event
 from accounts.ratelimit import check_and_increment, get_counter, increment_counter, reset_counter
 
@@ -277,12 +275,8 @@ class MfaSetupView(View):
 
             log_auth_event(request, 'mfa_enabled', user=request.user)
 
-            codes = generate_backup_codes(request.user)
-            request.session['pending_backup_codes'] = codes
-            enrollment.backup_codes_generated_at = timezone.now()
-            enrollment.save()
-
-            return redirect('accounts:mfa_backup_codes')
+            messages.success(request, _('Two-factor authentication is now enabled.'))
+            return redirect(settings.LOGIN_REDIRECT_URL)
 
         attempts = increment_counter(self._attempts_key(request), period_seconds=3600)
         if attempts >= MFA_MAX_ATTEMPTS:
@@ -366,31 +360,6 @@ class MfaVerifyView(View):
         return render(request, self.template_name, {'form': form})
 
 
-@method_decorator(csrf_protect, name='dispatch')
-class MfaBackupCodesView(View):
-    template_name = 'accounts/mfa_backup_codes.html'
-
-    def get(self, request):
-        codes = request.session.get('pending_backup_codes')
-        remaining = StaticDevice.objects.filter(user=request.user, name='backup').first()
-        remaining_count = remaining.token_set.count() if remaining else 0
-        response = render(request, self.template_name, {
-            'codes': codes,
-            'remaining_count': remaining_count,
-            'form': BackupCodesConfirmForm(),
-        })
-        response['Cache-Control'] = 'no-store'
-        return response
-
-    def post(self, request):
-        form = BackupCodesConfirmForm(request.POST)
-        if not form.is_valid():
-            codes = request.session.get('pending_backup_codes')
-            return render(request, self.template_name, {'codes': codes, 'form': form})
-        request.session.pop('pending_backup_codes', None)
-        return redirect(settings.LOGIN_REDIRECT_URL)
-
-
 class ForgotPasswordIdentifyView(_PlaceholderView):
     phase_note = 'Phase 6 — Password recovery (step 1)'
 
@@ -428,7 +397,6 @@ class SettingsView(View):
         user = request.user
         profile = get_profile(user)
         mfa_device = TOTPDevice.objects.filter(user=user, confirmed=True).first()
-        backup_device = StaticDevice.objects.filter(user=user, name='backup').first()
         ctx = {
             'profile_form': ProfileForm(user=user, initial={'username': user.username, 'email': user.email}),
             'password_form': ChangePasswordForm(user=user),
@@ -436,7 +404,6 @@ class SettingsView(View):
             'mfa_disable_form': MfaDisableForm(user=user),
             'delete_form': DeleteAccountForm(user=user),
             'mfa_enabled': mfa_device is not None,
-            'backup_codes_remaining': backup_device.token_set.count() if backup_device else 0,
             'sessions': _user_sessions(user),
             'current_session_key': request.session.session_key,
         }
@@ -499,7 +466,6 @@ class SettingsView(View):
         if not form.is_valid():
             return render(request, self.template_name, self._context(request, mfa_disable_form=form))
         TOTPDevice.objects.filter(user=user).delete()
-        StaticDevice.objects.filter(user=user, name='backup').delete()
         profile = get_profile(user)
         profile.mfa_enforced = False
         profile.save()

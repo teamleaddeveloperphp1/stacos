@@ -54,7 +54,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_otp',
     'django_otp.plugins.otp_totp',
-    'django_otp.plugins.otp_static',
     'captcha',
     'axes',
     'itr',
@@ -192,7 +191,6 @@ STRICT_ENUMERATION_DEFENCE = os.environ.get('STRICT_ENUMERATION_DEFENCE', 'true'
 
 OTP_TOTP_SYNC = True
 OTP_TOTP_THROTTLE_FACTOR = 0
-OTP_STATIC_THROTTLE_FACTOR = 0
 
 # django-simple-captcha
 CAPTCHA_LETTER_ROTATION = None

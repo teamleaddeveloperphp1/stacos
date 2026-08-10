@@ -49,10 +49,6 @@
   </p>
 
   {% if mfa_enabled %}
-    <p class="helper-text">{{ backup_codes_remaining }} backup codes remaining.</p>
-    <div class="actions">
-      <a class="btn" href="{% url 'accounts:mfa_backup_codes' %}">Regenerate backup codes</a>
-    </div>
     <form method="post" style="margin-top: 16px;">
       {% csrf_token %}
       <input type="hidden" name="section" value="mfa_disable">

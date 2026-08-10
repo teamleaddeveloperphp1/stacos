@@ -10,7 +10,6 @@ urlpatterns = [
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('mfa/setup/', views.MfaSetupView.as_view(), name='mfa_setup'),
     path('mfa/verify/', views.MfaVerifyView.as_view(), name='mfa_verify'),
-    path('mfa/backup-codes/', views.MfaBackupCodesView.as_view(), name='mfa_backup_codes'),
     path('forgot-password/', views.ForgotPasswordIdentifyView.as_view(), name='forgot_password'),
     path('forgot-password/verify/', views.ForgotPasswordVerifyView.as_view(), name='forgot_password_verify'),
     path('forgot-password/reset/', views.ForgotPasswordResetView.as_view(), name='forgot_password_reset'),

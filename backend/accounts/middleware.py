@@ -24,7 +24,6 @@ ALWAYS_ALLOWED_PREFIXES = (
 MFA_SETUP_EXEMPT_PREFIXES = (
     '/accounts/mfa/setup/',
     '/accounts/mfa/qr',
-    '/accounts/mfa/backup-codes/',
 )
 
 

@@ -6,7 +6,6 @@
   "create_account": "Create account",
   "already_have_account": "Already have an account? Sign in",
   "two_factor_auth": "Two-factor authentication",
-  "backup_codes": "Backup codes",
   "security_questions": "Security Questions",
   "captcha_label": "Captcha",
   "captcha_helper": "Word verification (Letters are not case-sensitive)",
@@ -36,11 +35,6 @@
   "mfa_verify_and_continue": "Verify and continue",
   "skip_for_now": "Skip for now",
   "mfa_verify_heading": "Enter your code",
-  "mfa_verify_helper": "Enter the 6-digit code from your authenticator app, or one of your backup codes.",
-  "backup_codes_warning": "Save these now. Each code works once. You won't be able to see them again.",
-  "copy_all": "Copy all",
-  "download_as_txt": "Download as .txt",
-  "print_label": "Print",
-  "continue_label": "Continue",
-  "backup_codes_remaining": "backup codes remaining."
+  "mfa_verify_helper": "Enter the 6-digit code from your authenticator app.",
+  "continue_label": "Continue"
 }

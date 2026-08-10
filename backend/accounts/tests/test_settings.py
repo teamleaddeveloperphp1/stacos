@@ -5,7 +5,7 @@ from django.urls import reverse
 from django_otp import DEVICE_ID_SESSION_KEY
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
-from accounts.mfa import base32_secret, generate_backup_codes
+from accounts.mfa import base32_secret
 from accounts.models import Profile
 
 User = get_user_model()

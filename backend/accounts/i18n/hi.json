@@ -6,7 +6,6 @@
   "create_account": "खाता बनाएं",
   "already_have_account": "क्या आपका खाता पहले से है? साइन इन करें",
   "two_factor_auth": "दो-चरणीय प्रमाणीकरण",
-  "backup_codes": "बैकअप कोड",
   "security_questions": "सुरक्षा प्रश्न",
   "captcha_label": "कैप्चा",
   "captcha_helper": "शब्द सत्यापन (अक्षर केस-संवेदी नहीं हैं)",
@@ -36,11 +35,6 @@
   "mfa_verify_and_continue": "सत्यापित करें और जारी रखें",
   "skip_for_now": "अभी के लिए छोड़ें",
   "mfa_verify_heading": "अपना कोड दर्ज करें",
-  "mfa_verify_helper": "अपने ऑथेंटिकेटर ऐप से 6-अंकीय कोड, या अपने बैकअप कोड में से एक दर्ज करें।",
-  "backup_codes_warning": "इन्हें अभी सहेजें। प्रत्येक कोड केवल एक बार काम करता है। आप इन्हें फिर से नहीं देख पाएंगे।",
-  "copy_all": "सभी कॉपी करें",
-  "download_as_txt": ".txt के रूप में डाउनलोड करें",
-  "print_label": "प्रिंट करें",
-  "continue_label": "जारी रखें",
-  "backup_codes_remaining": "बैकअप कोड शेष हैं।"
+  "mfa_verify_helper": "अपने ऑथेंटिकेटर ऐप से 6-अंकीय कोड दर्ज करें।",
+  "continue_label": "जारी रखें"
 }

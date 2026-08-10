@@ -15,7 +15,3 @@ staticfiles/
 
 # Media uploads
 media/
-
-# Django migrations (generated; regenerated fresh against the current DB)
-**/migrations/*.py
-!**/migrations/__init__.py
