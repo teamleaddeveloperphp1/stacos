@@ -21,7 +21,7 @@ CATALOG = [
         description='Prepare, validate and file ITR-1 returns.',
         icon='📄',
         available=True,
-        url_name='itr1:return_list',
+        url_name='itr:return_list',
     ),
     Service(
         slug='esic',

@@ -6,8 +6,8 @@ from django.db import models
 
 class Profile(models.Model):
     """Extends the stock `django.contrib.auth.User` (its migrations are
-    already applied against a real DB -- see docs/AUTH.md -- so we attach a
-    profile rather than swapping AUTH_USER_MODEL). `email` for login lives on
+    already applied against a real DB, so we attach a profile rather than
+    swapping AUTH_USER_MODEL). `email` for login lives on
     the built-in User.email field; uniqueness is enforced at the form layer
     (accounts.forms.SignUpForm), not a DB constraint on a table we don't own.
     """
@@ -32,7 +32,7 @@ class Profile(models.Model):
 
 def get_profile(user):
     """The one place that assumes a Profile exists -- every view can call
-    this instead of scattering `hasattr`/null-checks (mirrors how itr1's
+    this instead of scattering `hasattr`/null-checks (mirrors how itr's
     `_current_user` used to be the single seam for user lookup)."""
     profile, _created = Profile.objects.get_or_create(user=user)
     return profile

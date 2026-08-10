@@ -35,5 +35,5 @@ urlpatterns = [
     path('accounts/captcha/', include('captcha.urls')),
     path('', include('services.urls')),
     path('', RedirectView.as_view(pattern_name='services:dashboard', permanent=False)),
-    path('', include('itr1.urls')),
+    path('', include('itr.urls')),
 ]

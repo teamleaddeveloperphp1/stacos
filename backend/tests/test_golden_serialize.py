@@ -7,12 +7,12 @@ and importing the generated JSON back must recompute to the exact same
 figures (zero discrepancies).
 """
 
-from itr1.engine.compute import compute
-from itr1.serialize.generate import generate_json
-from itr1.serialize.importer import import_from_json
-from itr1.serialize.json_schema_validator import validate_against_schema
-from itr1.serialize.schema_order import order_by_schema
-from itr1.serialize.serializer import serialize
+from itr.engine.compute import compute
+from itr.serialize.generate import generate_json
+from itr.serialize.importer import import_from_json
+from itr.serialize.json_schema_validator import validate_against_schema
+from itr.serialize.schema_order import order_by_schema
+from itr.serialize.serializer import serialize
 
 from tests.test_golden import golden_model
 

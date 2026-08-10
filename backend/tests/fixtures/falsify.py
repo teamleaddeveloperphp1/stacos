@@ -18,7 +18,7 @@ import ast
 import copy
 import re
 
-from itr1.engine.evaluator import HELPERS, evaluate, evaluate_boolean
+from itr.engine.evaluator import HELPERS, evaluate, evaluate_boolean
 
 FactBag = dict
 
@@ -191,7 +191,7 @@ def falsify(rule, facts, extra_variables=None):
     through the facts it reads.
 
     `rule` is expected to expose `.appliesWhen` and `.assert_` attributes,
-    matching the `itr1.rules.registry.Rule` dataclass (whose `assert` field
+    matching the `itr.rules.registry.Rule` dataclass (whose `assert` field
     is named `assert_` because `assert` is a Python keyword).
     """
     extra_variables = extra_variables or []

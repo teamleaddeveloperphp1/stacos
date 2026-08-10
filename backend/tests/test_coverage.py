@@ -7,12 +7,12 @@ Sec 12.1(16): "A rule with no failing fixture is an untested rule."
 Ported from itr1-module/packages/core/test/coverage.test.ts.
 """
 
-from itr1.engine.compute import compute
-from itr1.engine.evaluator import evaluate_boolean
-from itr1.engine.facts import build_facts
-from itr1.engine.payload_facts import build_payload_facts
-from itr1.rules.registry import rules
-from itr1.serialize.serializer import serialize
+from itr.engine.compute import compute
+from itr.engine.evaluator import evaluate_boolean
+from itr.engine.facts import build_facts
+from itr.engine.payload_facts import build_payload_facts
+from itr.rules.registry import rules
+from itr.serialize.serializer import serialize
 from tests.fixtures.coverage_bases import COVERAGE_BASES
 from tests.fixtures.falsify import evaluate_values, falsify
 

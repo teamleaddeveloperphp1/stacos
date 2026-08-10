@@ -34,7 +34,7 @@ def _is_exempt(path, prefixes):
 
 class AccessControlMiddleware:
     """Single allowlist-driven gate for both "must be logged in" (§8.6) and
-    "must have completed MFA" (§5.4), so the seven existing itr1 views (and
+    "must have completed MFA" (§5.4), so the seven existing itr views (and
     every future services/settings view) don't each need their own
     decorator. Per-object ownership (a return belongs to its owner) is
     handled separately, in the view's queryset -- this middleware only

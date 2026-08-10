@@ -21,7 +21,7 @@ class DashboardTests(TestCase):
     def test_tds_itr_links_to_returns_landing_page(self):
         response = self.client.get(reverse('services:dashboard'))
         tds_card = next(c for c in response.context['cards'] if c['service'].slug == 'tds-itr')
-        self.assertEqual(tds_card['url'], reverse('itr1:return_list'))
+        self.assertEqual(tds_card['url'], reverse('itr:return_list'))
 
     def test_anonymous_redirected_to_login(self):
         self.client.logout()

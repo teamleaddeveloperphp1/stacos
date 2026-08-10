@@ -1,4 +1,4 @@
-"""See accounts.i18n_translate / itr1.i18n_translate -- same hand-rolled
+"""See accounts.i18n_translate / itr.i18n_translate -- same hand-rolled
 JSON-bundle convention, one bundle per app."""
 
 import json

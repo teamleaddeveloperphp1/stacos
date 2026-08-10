@@ -1,4 +1,4 @@
-from itr1.rules.registry import registry_counts, rules, validate_registry
+from itr.rules.registry import registry_counts, rules, validate_registry
 
 
 def test_registry_counts_match_cbdt_spec():

@@ -14,7 +14,7 @@ ReturnModel dict) keys, since Python has no interface/type to declare for
 this and a dict is the most direct analogue of the TS object literal.
 """
 
-from itr1.model_blank import blank_return_model
+from itr.model_blank import blank_return_model
 from tests.test_golden import golden_model
 
 # ---------------------------------------------------------------------------

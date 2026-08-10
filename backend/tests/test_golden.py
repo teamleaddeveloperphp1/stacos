@@ -7,9 +7,9 @@ government portal. If any of them change, the build is wrong -- not the test.
 Ported from itr1-module/packages/core/test/fixtures/golden.ts.
 """
 
-from itr1.engine.compute import compute
-from itr1.engine.validate import validate
-from itr1.model_blank import blank_return_model
+from itr.engine.compute import compute
+from itr.engine.validate import validate
+from itr.model_blank import blank_return_model
 
 GOLDEN_EXPECTED = {
     'grossTotalIncome': 263366,

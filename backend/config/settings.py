@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_static',
     'captcha',
     'axes',
-    'itr1',
+    'itr',
     'accounts',
     'services',
 ]
@@ -87,7 +87,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         # Templates live in ../frontend/templates/ (see the STATICFILES_DIRS
-        # comment below) rather than itr1/templates/ -- APP_DIRS stays True
+        # comment below) rather than itr/templates/ -- APP_DIRS stays True
         # in case a future app wants its own app-local templates, but every
         # screen template today resolves via this DIRS entry.
         'DIRS': [BASE_DIR.parent / 'frontend' / 'templates'],
@@ -97,7 +97,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'itr1.context_processors.i18n',
+                'itr.context_processors.i18n',
             ],
         },
     },
@@ -160,7 +160,7 @@ USE_TZ = True
 # `frontend/` (static assets) folders. Django still server-renders every
 # screen -- this is a folder-organisation split, not a decoupled API/SPA --
 # so STATICFILES_DIRS just points the staticfiles app at frontend/static/
-# instead of relying on itr1/'s own (now-removed) app-static directory.
+# instead of relying on itr/'s own (now-removed) app-static directory.
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR.parent / 'frontend' / 'static']
@@ -172,7 +172,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ---------------------------------------------------------------------------
-# accounts / services (auth, MFA, dashboard) — see docs/AUTH.md
+# accounts / services (auth, MFA, dashboard)
 # ---------------------------------------------------------------------------
 
 LOGIN_URL = 'accounts:login'

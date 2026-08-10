@@ -1,4 +1,4 @@
-"""Mirrors itr1.i18n_translate's hand-rolled JSON-bundle approach (see that
+"""Mirrors itr.i18n_translate's hand-rolled JSON-bundle approach (see that
 module's docstring for why this project doesn't use Django gettext/.po
 files) so the whole site shares one translation convention: `{{ t.key }}`
 in templates, English fallback for any missing key."""
