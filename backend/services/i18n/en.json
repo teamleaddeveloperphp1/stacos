@@ -1,0 +1,21 @@
+{
+  "dashboard": "Dashboard",
+  "welcome_back": "Welcome back, {name}",
+  "choose_service": "Choose a service to get started.",
+  "available": "Available",
+  "coming_soon": "Coming soon",
+  "coming_soon_detail": "We're building this. It isn't available yet.",
+  "back_to_dashboard": "Back to dashboard",
+  "notify_me": "Notify me when it's ready",
+  "notify_me_done": "We'll let you know.",
+  "service_tds_itr": "TDS, ITR",
+  "service_tds_itr_desc": "Prepare, validate and file ITR-1 returns.",
+  "service_esic": "ESIC Compliance",
+  "service_esic_desc": "Employee State Insurance compliance filings.",
+  "service_epf": "EPF Compliance",
+  "service_epf_desc": "Employee Provident Fund compliance filings.",
+  "service_cma": "Credit Monitoring Arrangement",
+  "service_cma_desc": "CMA data preparation for bank credit reviews.",
+  "service_project_financing": "Project Financing",
+  "service_project_financing_desc": "Project finance documentation and workflows."
+}

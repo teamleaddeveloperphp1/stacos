@@ -1,7 +1,5 @@
 import copy
 
-from django.contrib.auth import login
-from django.contrib.auth.models import User
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -91,14 +89,10 @@ def _chrome_context(tax_return, computed=None):
 
 
 def _current_user(request):
-    """No login screen exists yet (out of scope for this phase) — fall back
-    to a single auto-provisioned demo user so the screens are usable end to
-    end. Replace with real auth in a later phase."""
-    if request.user.is_authenticated:
-        return request.user
-    user, created = User.objects.get_or_create(username='demo')
-    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-    return user
+    """Real auth now guards every /returns/ URL (accounts.middleware.
+    AccessControlMiddleware) -- request.user is always authenticated by the
+    time a view runs here."""
+    return request.user
 
 
 def set_locale(request, locale):

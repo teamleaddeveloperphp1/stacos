@@ -52,7 +52,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
+    'captcha',
+    'axes',
     'itr1',
+    'accounts',
+    'services',
 ]
 
 MIDDLEWARE = [
@@ -61,8 +68,17 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',
+    'accounts.middleware.AccessControlMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
+]
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'accounts.backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -114,6 +130,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 10},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -152,3 +169,51 @@ STATICFILES_DIRS = [BASE_DIR.parent / 'frontend' / 'static']
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# ---------------------------------------------------------------------------
+# accounts / services (auth, MFA, dashboard) — see docs/AUTH.md
+# ---------------------------------------------------------------------------
+
+LOGIN_URL = 'accounts:login'
+LOGIN_REDIRECT_URL = 'services:dashboard'
+LOGOUT_REDIRECT_URL = 'accounts:login'
+
+TERMS_URL = os.environ.get('TERMS_URL', 'https://www.stacos.com/terms.php')
+PRIVACY_URL = os.environ.get('PRIVACY_URL', 'https://www.stacos.com/privacy.php')
+OTP_TOTP_ISSUER = os.environ.get('OTP_TOTP_ISSUER', 'STACOS.ai')
+
+# §5: require every user to complete MFA enrollment before reaching the
+# dashboard/returns flow (rather than it being merely offered/skippable).
+MFA_REQUIRED = os.environ.get('MFA_REQUIRED', 'false').lower() == 'true'
+
+# §6.1: never reveal whether an email/account exists during password recovery.
+STRICT_ENUMERATION_DEFENCE = os.environ.get('STRICT_ENUMERATION_DEFENCE', 'true').lower() == 'true'
+
+OTP_TOTP_SYNC = True
+OTP_TOTP_THROTTLE_FACTOR = 0
+OTP_STATIC_THROTTLE_FACTOR = 0
+
+# django-simple-captcha
+CAPTCHA_LETTER_ROTATION = None
+CAPTCHA_NOISE_FUNCTIONS = ('captcha.helpers.noise_dots',)
+CAPTCHA_CHALLENGE_FUNCT = 'accounts.captcha.challenge'
+CAPTCHA_TIMEOUT = 5  # minutes
+CAPTCHA_LENGTH = 6
+
+TERMS_VERSION = os.environ.get('TERMS_VERSION', '2026-08')
+
+# django-axes
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 0.5  # hours = 30 minutes
+AXES_LOCKOUT_PARAMETERS = [['username', 'ip_address']]
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+
+# Session / cookie hardening (§11). Secure flags only make sense once the app
+# is actually served over HTTPS, which local DEBUG dev never is.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 weeks, used only when "Remember me" is checked
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
