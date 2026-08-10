@@ -1,0 +1,24 @@
+{% extends "app_base.html" %}
+{% block breadcrumb %}<p class="breadcrumb">Dashboard &rsaquo; {{ service_name }}</p>{% endblock %}
+
+{% block title %}{{ service_name }} · STACOS.ai{% endblock %}
+
+{% block content %}
+<h1>{{ service_name }}</h1>
+<p><span class="chip chip-coming_soon">Coming soon</span></p>
+<p>We're building this. It isn't available yet.</p>
+
+<div class="actions">
+  <a class="btn btn-primary" href="{% url 'services:dashboard' %}">Back to dashboard</a>
+  {% if user.is_authenticated %}
+    <form method="post">
+      {% csrf_token %}
+      {% if interested %}
+        <button type="button" class="btn" disabled>We'll let you know.</button>
+      {% else %}
+        <button type="submit" class="btn">Notify me when it's ready</button>
+      {% endif %}
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

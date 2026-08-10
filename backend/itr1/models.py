@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -15,6 +17,7 @@ class TaxReturn(models.Model):
     JSONField per architecture mandate 3 ("one canonical in-memory model") --
     not normalized across dozens of tables for every nested schedule."""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tax_returns')
     pan = models.CharField(max_length=10, blank=True)
     ay = models.CharField(max_length=7, default='2026-27')
@@ -72,6 +75,7 @@ class AuditLogEntry(models.Model):
         (KIND_ADVISORY_ACK, 'Advisory acknowledgement'),
     ]
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tax_return = models.ForeignKey(TaxReturn, on_delete=models.CASCADE, related_name='audit_log')
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     at = models.DateTimeField(auto_now_add=True)

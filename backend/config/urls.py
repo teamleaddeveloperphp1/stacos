@@ -15,11 +15,25 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+
+def healthz(request):
+    return HttpResponse('ok')
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', RedirectView.as_view(pattern_name='itr1:return_list', permanent=False)),
+    path('healthz/', healthz, name='healthz'),
+    path('accounts/', include('accounts.urls')),
+    # Mounted at project level, not nested in accounts.urls's app_name
+    # namespace -- django-simple-captcha's own helpers call
+    # reverse("captcha-image", ...) unnamespaced, which breaks if these
+    # patterns are included underneath an app_name.
+    path('accounts/captcha/', include('captcha.urls')),
+    path('', include('services.urls')),
+    path('', RedirectView.as_view(pattern_name='services:dashboard', permanent=False)),
     path('', include('itr1.urls')),
 ]
