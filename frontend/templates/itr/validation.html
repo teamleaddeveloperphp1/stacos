@@ -1,31 +1,31 @@
 {% extends "itr/base.html" %}
 
-{% block title %}{{ t.screen_validation }}{% endblock %}
-{% block page_title %}{{ t.screen_validation }}{% endblock %}
+{% block title %}Validation & JSON{% endblock %}
+{% block page_title %}Validation & JSON{% endblock %}
 
 {% block content %}
 
 {% if report.ok %}
   <div class="success-banner">
-    <strong>&#10003; {{ t.validation_successful }}</strong> {{ t.validation_successful_detail }}
+    <strong>&#10003; Validation successful!</strong> No errors were found.
   </div>
 {% else %}
-  <p><strong>&#10007; {{ t.validation_failed }}</strong> — {{ report.errors|length }} error(s), {{ report.advisories|length }} advisory(ies).</p>
+  <p><strong>&#10007; Validation failed</strong> — {{ report.errors|length }} error(s), {{ report.advisories|length }} advisory(ies).</p>
 {% endif %}
 
 {% if report.errors %}
-  <h2>{{ t.errors }}</h2>
+  <h2>Errors</h2>
   {% for f in report.errors %}
     <div class="finding">
       <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
       <div><em>{{ f.remediation }}</em></div>
-      {% if f.goto_url %}<a href="{{ f.goto_url }}">{{ t.go_to_field }}</a>{% endif %}
+      {% if f.goto_url %}<a href="{{ f.goto_url }}">Go to field &rsaquo;</a>{% endif %}
     </div>
   {% endfor %}
 {% endif %}
 
 {% if report.advisories or report.documentAdvisories %}
-  <h2>{{ t.advisories_heading }}</h2>
+  <h2>Advisories — require acknowledgement before download</h2>
   <form method="post">
     {% csrf_token %}
     {% for f in report.advisories %}
@@ -34,7 +34,7 @@
           <input type="checkbox" name="ack_{{ f.ruleId }}" {% if f.ruleId not in pending_ack_ids %}checked{% endif %}>
           <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
         </label>
-        {% if f.goto_url %}<a href="{{ f.goto_url }}">{{ t.go_to_field }}</a>{% endif %}
+        {% if f.goto_url %}<a href="{{ f.goto_url }}">Go to field &rsaquo;</a>{% endif %}
       </div>
     {% endfor %}
     {% for f in report.documentAdvisories %}
@@ -43,10 +43,10 @@
           <input type="checkbox" name="ack_{{ f.ruleId }}" {% if f.ruleId not in pending_ack_ids %}checked{% endif %}>
           <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
         </label>
-        {% if f.goto_url %}<a href="{{ f.goto_url }}">{{ t.go_to_field }}</a>{% endif %}
+        {% if f.goto_url %}<a href="{{ f.goto_url }}">Go to field &rsaquo;</a>{% endif %}
       </div>
     {% endfor %}
-    <button type="submit" name="action" value="acknowledge">{{ t.acknowledge_selected }}</button>
+    <button type="submit" name="action" value="acknowledge">I understand — acknowledge selected</button>
   </form>
 {% endif %}
 
@@ -57,7 +57,7 @@
   </ul>
 {% endif %}
 
-<p>{{ t.rule_set_label }}: {{ report.ruleSetVersion }} &middot; {{ t.constants_label }}: {{ report.constantsVersion }} &middot; Evaluated: {{ report.rulesEvaluated }} &middot; Skipped: {{ report.rulesSkipped }}</p>
+<p>Rule set: {{ report.ruleSetVersion }} &middot; Constants: {{ report.constantsVersion }} &middot; Evaluated: {{ report.rulesEvaluated }} &middot; Skipped: {{ report.rulesSkipped }}</p>
 
 <hr>
 <h2>Verification</h2>
@@ -74,7 +74,7 @@
     <div class="field">{{ verification_form.place.label_tag }}{{ verification_form.place }}{{ verification_form.place.errors }}</div>
   </div>
   <div class="actions">
-    <button type="submit" name="action" value="save_verification">{{ t.save }}</button>
+    <button type="submit" name="action" value="save_verification">Save</button>
   </div>
 </form>
 
@@ -83,7 +83,7 @@
   {% csrf_token %}
   <div class="actions">
     {% if downloadable %}
-      <button type="submit" name="action" value="download">{{ t.download_json }}</button>
+      <button type="submit" name="action" value="download">Download JSON</button>
     {% endif %}
     <button type="submit" name="action" value="preview" formtarget="_blank">Preview</button>
     <button type="submit" name="action" value="export_report" formtarget="_blank">Export validation report (PDF)</button>

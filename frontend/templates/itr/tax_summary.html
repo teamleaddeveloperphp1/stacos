@@ -1,7 +1,7 @@
 {% extends "itr/base.html" %}
 
-{% block title %}{{ t.screen_tax_summary }}{% endblock %}
-{% block page_title %}{{ t.screen_tax_summary }}{% endblock %}
+{% block title %}Tax Summary{% endblock %}
+{% block page_title %}Tax Summary{% endblock %}
 
 {% block content %}
 
@@ -62,13 +62,21 @@
 </fieldset>
 
 <fieldset>
-  <legend>E &mdash; Total Taxes Paid</legend>
+  <legend>E1 &mdash; TDS / TCS Deducted at Source</legend>
   <div class="computed-line"><span>TDS on salary (TDS1)</span><span class="val">&#8377;{{ display.tds1 }}</span></div>
   <div class="computed-line"><span>TDS other than salary (TDS2)</span><span class="val">&#8377;{{ display.tds2 }}</span></div>
   <div class="computed-line"><span>TDS on sale of immovable property etc. (TDS3)</span><span class="val">&#8377;{{ display.tds3 }}</span></div>
-  <div class="computed-line"><span>Tax Collected at Source (TCS)</span><span class="val">&#8377;{{ display.tcs }}</span></div>
+  <div class="computed-line total"><span>Tax Collected at Source (TCS)</span><span class="val">&#8377;{{ display.tcs }}</span></div>
+</fieldset>
+
+<fieldset>
+  <legend>E2 &mdash; Tax Paid Directly (ITR)</legend>
   <div class="computed-line"><span>D12(a). Advance Tax</span><span class="val">&#8377;{{ display.advanceTax }}</span></div>
-  <div class="computed-line"><span>D12(b). Self-Assessment Tax</span><span class="val">&#8377;{{ display.selfAssessmentTax }}</span></div>
+  <div class="computed-line total"><span>D12(b). Self-Assessment Tax</span><span class="val">&#8377;{{ display.selfAssessmentTax }}</span></div>
+</fieldset>
+
+<fieldset>
+  <legend>E &mdash; Total Taxes Paid (E1 + E2)</legend>
   <div class="computed-line total"><span>Total Taxes Paid</span><span class="val">&#8377;{{ display.totalTaxesPaid }}</span></div>
 </fieldset>
 
@@ -86,7 +94,7 @@
 <form method="post">
   {% csrf_token %}
   <div class="actions">
-    <button type="submit" name="action" value="proceed">{{ t.proceed_to_validation }}</button>
+    <button type="submit" name="action" value="proceed">Proceed to Validation</button>
     <button type="submit" name="action" value="export_pdf" formtarget="_blank">Export computation sheet (PDF)</button>
   </div>
 </form>

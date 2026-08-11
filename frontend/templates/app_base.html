@@ -1,5 +1,5 @@
 {% load static %}<!DOCTYPE html>
-<html lang="{{ current_locale|default:'en' }}">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,10 +25,10 @@
             {{ user.first_name|default:user.email }}
           </button>
           <div class="menu">
-            <a href="{% url 'accounts:settings' %}">{{ t.settings }}</a>
+            <a href="{% url 'accounts:settings' %}">Settings</a>
             <form method="post" action="{% url 'accounts:logout' %}">
               {% csrf_token %}
-              <button type="submit">{{ t.sign_out }}</button>
+              <button type="submit">Sign out</button>
             </form>
           </div>
         </div>

@@ -1,13 +1,13 @@
 {% extends "app_base.html" %}
 
-{% block title %}{{ t.two_factor_auth }} · STACOS.ai{% endblock %}
+{% block title %}Two-factor authentication · STACOS.ai{% endblock %}
 
 {% block content %}
 <div class="auth-card-wrap">
   <div class="auth-card">
-    <div class="eyebrow">{{ t.two_factor_auth }}</div>
-    <h1>{{ t.mfa_verify_heading }}</h1>
-    <p class="helper-text">{{ t.mfa_verify_helper }}</p>
+    <div class="eyebrow">Two-factor authentication</div>
+    <h1>Enter your code</h1>
+    <p class="helper-text">Enter the 6-digit code from your authenticator app.</p>
 
     {% if form.non_field_errors %}
       <div class="error-summary"><ul>{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
@@ -21,7 +21,7 @@
         {{ form.code.errors }}
       </div>
       <div class="actions">
-        <button type="submit">{{ t.mfa_verify_and_continue }}</button>
+        <button type="submit">Verify and continue</button>
       </div>
     </form>
   </div>

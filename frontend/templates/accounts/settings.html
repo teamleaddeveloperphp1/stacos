@@ -63,20 +63,6 @@
   {% endif %}
 </fieldset>
 
-<fieldset>
-  <legend>Language</legend>
-  <form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="section" value="language">
-    <div class="field">
-      {% for radio in language_form.preferred_language %}
-        <label style="display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; text-transform: none; font-family: var(--font-sans); font-size: 14px;">{{ radio.tag }} {{ radio.choice_label }}</label>
-      {% endfor %}
-      {{ language_form.preferred_language.errors }}
-    </div>
-    <div class="actions"><button type="submit">Save</button></div>
-  </form>
-</fieldset>
 
 <fieldset>
   <legend>Active sessions</legend>

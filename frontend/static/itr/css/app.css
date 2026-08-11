@@ -546,16 +546,6 @@ nav.itr-menu a > .chip { flex-shrink: 0; }
 nav.itr-menu a:hover { background: var(--grey-50); color: var(--ink); }
 nav.itr-menu a.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-light); }
 
-.lang-switcher {
-  margin-top: 24px;
-  padding-top: 14px;
-  border-top: 1px solid var(--rule);
-  font-size: 12.5px;
-  color: var(--grey-500);
-}
-.lang-switcher a { color: var(--grey-500); }
-.lang-switcher a.lang-active { color: var(--blue); font-weight: 600; }
-
 /* ---------- Chips / status pills ---------- */
 .chip {
   font-family: var(--font-mono);
@@ -698,7 +688,7 @@ input[type="checkbox"] { width: auto; margin-right: 6px; vertical-align: middle;
 .actions { margin-top: 20px; display: flex; gap: 10px; }
 
 /* ---------- Summary / computed-value boxes ---------- */
-.gti-summary, .td-summary, .tp-summary, .summary-box {
+.gti-summary, .td-summary, .tp-summary, .summary-box, .tds-summary, .direct-tax-summary {
   background: var(--blue-light);
   border: 1px solid #c7dbf3;
   border-radius: var(--radius);
@@ -706,7 +696,11 @@ input[type="checkbox"] { width: auto; margin-right: 6px; vertical-align: middle;
   margin-bottom: 20px;
   font-size: 1.05rem;
 }
-.gti-summary strong, .td-summary strong, .tp-summary strong, .summary-box strong { font-size: 1.25rem; }
+.gti-summary strong, .td-summary strong, .tp-summary strong, .summary-box strong,
+.tds-summary strong, .direct-tax-summary strong { font-size: 1.25rem; }
+.summary-box-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.summary-box-row > * { flex: 1; min-width: 260px; }
+.summary-box-title { display: block; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--blue); margin-bottom: 6px; }
 
 .regime-note {
   background: var(--warn-bg);
@@ -716,6 +710,19 @@ input[type="checkbox"] { width: auto; margin-right: 6px; vertical-align: middle;
   margin-bottom: 20px;
   font-size: 13.5px;
   color: var(--warn);
+}
+
+/* §regime-conditional fields: only the fields for the selected regime are
+   shown at all -- not shown-with-a-zero-note -- so the screen reads
+   unambiguously as "your regime's form", not a generic superset. */
+.regime-hidden { display: none; }
+.regime-inapplicable-note {
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: var(--card-gap);
+  font-size: 13.5px;
+  color: var(--grey-500);
 }
 
 .computed-line {
@@ -756,6 +763,23 @@ input[type="checkbox"] { width: auto; margin-right: 6px; vertical-align: middle;
 .finding.document { border-color: var(--grey-500); background: var(--grey-50); }
 .finding label { display: block; font-size: inherit; font-weight: normal; color: inherit; margin: 0; }
 .finding em { font-style: italic; color: var(--grey-700); }
+
+/* §3.2 "Go to field" -- must read as an actionable button, not a stray text
+   link, since it's the primary way a preparer gets from a finding to the
+   offending field. */
+.finding a {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  background: var(--blue);
+  color: var(--white);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.finding a:hover, .finding a:focus { background: #002d80; text-decoration: none; }
 
 .rule-id { font-family: var(--font-mono); font-size: 12px; color: var(--grey-500); }
 .screen-group h3 { margin-bottom: 4px; }
@@ -799,6 +823,101 @@ body.dashboard-body { background: var(--off-white); }
 .dashboard-empty { background: var(--white); border: 1px dashed var(--rule); border-radius: 6px; padding: 48px 24px; text-align: center; color: var(--grey-500); }
 .dashboard-empty h2 { color: var(--ink); }
 .dashboard-empty .btn { margin-top: 14px; }
+
+/* ---------- Members (Tax Filer) list ---------- */
+.members-card { background: var(--white); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow-sm); }
+.members-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px var(--card-pad); border-bottom: 1px solid var(--rule); }
+.members-card-header h1 { margin: 0 0 6px; font-size: 1.25rem; }
+.members-card-header .dashboard-sub { max-width: 560px; }
+
+.member-rows { padding: 0 var(--card-pad); }
+.member-row { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.member-row:last-child { border-bottom: none; }
+
+.member-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-weight: 600;
+  font-size: 14px;
+}
+.member-avatar-1 { background: var(--blue); }
+.member-avatar-2 { background: var(--ok); }
+.member-avatar-3 { background: var(--blue-bright); }
+.member-avatar-4 { background: var(--warn); }
+.member-avatar-5 { background: var(--grey-500); }
+
+.member-info { flex: 1; min-width: 0; }
+.member-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.member-name { font-weight: 600; color: var(--ink); text-decoration: none; }
+.member-name:hover { color: var(--blue); }
+.member-continue-chip { text-decoration: none; }
+.member-pan { margin-top: 2px; font-size: 12.5px; color: var(--grey-500); font-family: var(--font-mono); }
+
+.member-menu { position: relative; }
+.member-menu summary {
+  list-style: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--grey-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--grey-500);
+}
+.member-menu summary::-webkit-details-marker { display: none; }
+.member-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  min-width: 120px;
+  overflow: hidden;
+}
+.member-menu-panel a, .member-menu-panel button {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.member-menu-panel a:hover, .member-menu-panel button:hover { background: var(--grey-50); }
+.member-menu-panel button { color: var(--err); }
+
+.pagination { display: flex; align-items: center; gap: 6px; padding: 16px var(--card-pad); }
+.page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.page-link:hover { border-color: var(--blue); color: var(--blue); }
+.page-link.page-active { background: var(--blue); border-color: var(--blue); color: var(--white); }
 
 /* ---------- Services dashboard ---------- */
 .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--card-gap); }

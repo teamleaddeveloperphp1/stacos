@@ -1,0 +1,71 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Members · stacos.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'itr/css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'itr/css/app.css' %}">
+</head>
+<body class="dashboard-body">
+  <main class="dashboard">
+    <p class="breadcrumb"><a href="{% url 'services:dashboard' %}">Home</a> &rsaquo; Members</p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="finding" role="alert">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="members-card">
+      <div class="members-card-header">
+        <div>
+          <h1>Click on a name to continue</h1>
+          <p class="dashboard-sub">Click on any of the Tax Filers listed below to start using our services. You may click on "Add" button on the right to add a new Tax Filer.</p>
+        </div>
+        <a class="btn btn-primary" href="{% url 'itr:member_add' %}">Add</a>
+      </div>
+
+      <div class="member-rows">
+        {% for filer in page %}
+        <div class="member-row">
+          {% cycle 'member-avatar-1' 'member-avatar-2' 'member-avatar-3' 'member-avatar-4' 'member-avatar-5' as avatar_color silent %}
+          <span class="member-avatar {{ avatar_color }}">{{ filer.first_name|first|upper }}</span>
+          <div class="member-info">
+            <div class="member-name-row">
+              <a class="member-name" href="{% url 'itr:member_continue' filer.pk %}">{{ filer.first_name }} {{ filer.last_name }}</a>
+              <a class="chip chip-confirmed member-continue-chip" href="{% url 'itr:member_continue' filer.pk %}">Continue</a>
+            </div>
+            <div class="member-pan">{{ filer.pan }}</div>
+          </div>
+          <details class="member-menu">
+            <summary>&#8942;</summary>
+            <div class="member-menu-panel">
+              <a href="{% url 'itr:member_edit' filer.pk %}">Edit</a>
+              <form method="post" action="{% url 'itr:member_delete' filer.pk %}" onsubmit="return confirm('Delete {{ filer.first_name }} {{ filer.last_name }}?');">
+                {% csrf_token %}
+                <button type="submit">Delete</button>
+              </form>
+            </div>
+          </details>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if page.paginator.num_pages > 1 %}
+      <div class="pagination">
+        {% for page_num in page.paginator.page_range %}
+          <a class="page-link {% if page_num == page.number %}page-active{% endif %}" href="?page={{ page_num }}">{{ page_num }}</a>
+        {% endfor %}
+        {% if page.has_next %}
+          <a class="page-link" href="?page={{ page.next_page_number }}">Next</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {% extends "itr/base.html" %}
 
-{% block title %}{{ t.screen_gross_total_income }}{% endblock %}
-{% block page_title %}{{ t.screen_gross_total_income }}{% endblock %}
+{% block title %}Gross Total Income{% endblock %}
+{% block page_title %}Gross Total Income{% endblock %}
 
 {% block content %}
 {% if conflict_message %}
@@ -30,16 +30,19 @@
   <input type="hidden" name="_version" value="{{ draft_version }}">
 
   <fieldset id="b1">
-    <legend>{{ t.section_b1_salary }}</legend>
+    <legend>B1 — Income from Salary</legend>
     <div class="row">
       <div class="field">{{ salary_form.salary17_1.label_tag }}{{ salary_form.salary17_1 }}{{ salary_form.salary17_1.errors }}</div>
       <div class="field">{{ salary_form.perquisites17_2.label_tag }}{{ salary_form.perquisites17_2 }}{{ salary_form.perquisites17_2.errors }}</div>
       <div class="field">{{ salary_form.profits_in_lieu17_3.label_tag }}{{ salary_form.profits_in_lieu17_3 }}{{ salary_form.profits_in_lieu17_3.errors }}</div>
     </div>
-    <div class="row">
+    <div class="row {% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
       <div class="field">{{ salary_form.entertainment_allowance_16ii.label_tag }}{{ salary_form.entertainment_allowance_16ii }}{{ salary_form.entertainment_allowance_16ii.errors }}</div>
       <div class="field">{{ salary_form.professional_tax_16iii.label_tag }}{{ salary_form.professional_tax_16iii }}{{ salary_form.professional_tax_16iii.errors }}</div>
     </div>
+    {% if computed.regime == 'NEW' %}
+      <p class="regime-inapplicable-note">Entertainment allowance u/s 16(ii) and professional tax u/s 16(iii) are only deductible under the Old Tax Regime.</p>
+    {% endif %}
     <p><small>Standard deduction u/s 16(ia) is computed automatically: &#8377;{{ computed.salary.standardDeduction16ia }}</small></p>
     {% include "itr/_trace_drawer.html" with trace=computed.salary.traceStandardDeduction %}
 
@@ -52,12 +55,27 @@
         {% if allow_form.DELETE %}{% if forloop.counter0 < allowance_formset.initial_form_count %}<div class="field">{{ allow_form.DELETE.label_tag }}{{ allow_form.DELETE }}</div>{% endif %}{% endif %}
       </div>
     {% endfor %}
-    <p><small>HRA u/s 10(13A) eligible exemption (computed from the 10(13A) schedule, not yet entered in this pass): &#8377;{{ computed.hra.eligibleExemption }}</small></p>
-    {% include "itr/_trace_drawer.html" with trace=computed.hra.trace %}
+    <div class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
+      <p><strong>Schedule 10(13A) &mdash; House Rent Allowance</strong></p>
+      <div class="row">
+        <div class="field">{{ hra_form.place_of_work.label_tag }}{{ hra_form.place_of_work }}{{ hra_form.place_of_work.errors }}</div>
+        <div class="field">{{ hra_form.actual_hra_received.label_tag }}{{ hra_form.actual_hra_received }}{{ hra_form.actual_hra_received.errors }}</div>
+        <div class="field">{{ hra_form.actual_rent_paid.label_tag }}{{ hra_form.actual_rent_paid }}{{ hra_form.actual_rent_paid.errors }}</div>
+      </div>
+      <div class="row">
+        <div class="field">{{ hra_form.basic_salary.label_tag }}{{ hra_form.basic_salary }}{{ hra_form.basic_salary.errors }}</div>
+        <div class="field">{{ hra_form.dearness_allowance.label_tag }}{{ hra_form.dearness_allowance }}{{ hra_form.dearness_allowance.errors }}</div>
+      </div>
+      <p><small>HRA u/s 10(13A) eligible exemption (least of actual HRA received, rent paid less 10% of basic+DA, or 40%/50% of basic+DA): &#8377;{{ computed.hra.eligibleExemption }}</small></p>
+      {% include "itr/_trace_drawer.html" with trace=computed.hra.trace %}
+    </div>
+    {% if computed.regime == 'NEW' %}
+      <p class="regime-inapplicable-note">HRA exemption u/s 10(13A) is only available under the Old Tax Regime.</p>
+    {% endif %}
   </fieldset>
 
   <fieldset id="b2">
-    <legend>{{ t.section_b2_house_property }}</legend>
+    <legend>B2 — Income from House Property</legend>
     <p><small>Co-ownership sub-rows and Schedule 24(b) lender detail are not part of this first pass; the top-level property fields below round-trip correctly.</small></p>
     {{ property_formset.management_form }}
     {% for hp_form in property_formset %}
@@ -85,7 +103,7 @@
   </fieldset>
 
   <fieldset id="b3">
-    <legend>{{ t.section_b3_other_sources }}</legend>
+    <legend>B3 — Income from Other Sources</legend>
     <p><small>Dividend is a single amount here; the quarterly breakup grid is not part of this first pass.</small></p>
     {{ other_source_formset.management_form }}
     {% for os_form in other_source_formset %}
@@ -98,7 +116,7 @@
   </fieldset>
 
   <fieldset id="exemptIncome">
-    <legend>{{ t.section_exempt_income }}</legend>
+    <legend>Exempt Income (Schedule EI)</legend>
     {{ exempt_income_formset.management_form }}
     {% for ei_form in exempt_income_formset %}
       <div class="row formset-row">
@@ -112,13 +130,13 @@
   </fieldset>
 
   <fieldset id="b4">
-    <legend>{{ t.section_b4_gti }}</legend>
+    <legend>B4 — Gross Total Income</legend>
     <p>Gross Total Income (computed): <strong>&#8377;{{ gti_display }}</strong></p>
   </fieldset>
 
   <div class="actions">
-    <button type="submit" name="action" value="save">{{ t.save }}</button>
-    <button type="submit" name="action" value="confirm">{{ t.confirm }}</button>
+    <button type="submit" name="action" value="save">Save</button>
+    <button type="submit" name="action" value="confirm">Confirm</button>
   </div>
 </form>
 {% endblock %}

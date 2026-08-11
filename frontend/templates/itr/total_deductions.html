@@ -1,7 +1,7 @@
 {% extends "itr/base.html" %}
 
-{% block title %}{{ t.screen_total_deductions }}{% endblock %}
-{% block page_title %}{{ t.screen_total_deductions }}{% endblock %}
+{% block title %}Total Deductions{% endblock %}
+{% block page_title %}Total Deductions{% endblock %}
 
 {% block content %}
 {% if conflict_message %}
@@ -26,11 +26,13 @@
 </div>
 
 <div class="regime-note">
-  Only 80CCD(2) and 80CCH are available under the new tax regime &mdash; current regime: <strong>{{ computed.regime }}</strong>.
+  Current regime: <strong>{{ computed.regime }}</strong>.
   {% if computed.regime == 'NEW' %}
-    Every other deduction below is shown so you can review your data, but the engine will compute it as &#8377;0
-    towards Total Deductions while the new regime is in effect. Fields below still accept entries (defaulted to 0)
-    so you are not blocked from saving/confirming this screen.
+    Only 80CCD(2) / 80CCH are deductible under the New Tax Regime, so every other Chapter VI-A section is
+    hidden below. Switch to the Old Tax Regime on Personal Information to see and edit them &mdash; anything
+    you already entered there is preserved, not deleted.
+  {% else %}
+    You're on the Old Tax Regime, so every Chapter VI-A section below is available.
   {% endif %}
 </div>
 
@@ -38,7 +40,7 @@
   {% csrf_token %}
   <input type="hidden" name="_version" value="{{ draft_version }}">
 
-  <fieldset id="sec80C">
+  <fieldset id="sec80C" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80C / 80CCC / 80CCD(1) group (shared &#8377;1,50,000 aggregate cap)</legend>
     <p><small>Simplification: Schedule 80C rows capture identification no. + amount only (the CBDT schema's
       typeOfIdentifier is omitted). PRAN numbers are a single comma-separated text field instead of a repeating grid.</small></p>
@@ -69,6 +71,7 @@
     {% endfor %}
     <p><small>80C total (derived from schedule): &#8377;{{ computed.deductions.schedule80CTotal }} &middot;
       80CCC total (derived from schedule): &#8377;{{ computed.deductions.schedule80CCCTotal }}</small></p>
+    {% include "itr/_trace_drawer.html" with trace=computed.deductions.traces.80C %}
   </fieldset>
 
   <fieldset id="sec80CCD2">
@@ -77,9 +80,10 @@
       <div class="field">{{ deductions_form.s80CCD2.label_tag }}{{ deductions_form.s80CCD2 }}{{ deductions_form.s80CCD2.errors }}</div>
       <div class="field">{{ deductions_form.s80CCH.label_tag }}{{ deductions_form.s80CCH }}{{ deductions_form.s80CCH.errors }}</div>
     </div>
+    {% include "itr/_trace_drawer.html" with trace=computed.deductions.traces.80CCD2 %}
   </fieldset>
 
-  <fieldset id="sec80D">
+  <fieldset id="sec80D" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80D — Medical insurance</legend>
     <p><small>Simplification: the CBDT schema's per-insurer sub-rows (insurer name/policy no./amount) are not
       captured this pass; only the block-level totals below (which is what the engine reads) round-trip.</small></p>
@@ -115,9 +119,10 @@
       <div class="field">{{ sched80d_form.parents_senior_medical_expenditure.label_tag }}{{ sched80d_form.parents_senior_medical_expenditure }}</div>
     </div>
     <p><small>Eligible amount per Schedule 80D: &#8377;{{ computed.deductions.schedule80D.eligibleAmountOfDeduction }}</small></p>
+    {% include "itr/_trace_drawer.html" with trace=computed.deductions.schedule80D.trace %}
   </fieldset>
 
-  <fieldset id="sec80DD">
+  <fieldset id="sec80DD" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80DD / 80U — Disability</legend>
     <p><strong>80DD (dependent with disability)</strong></p>
     <div class="row">
@@ -142,7 +147,7 @@
     <p><small>Simplification: dependent type/PAN/Aadhaar and UDID number (80DD) are not captured this pass.</small></p>
   </fieldset>
 
-  <fieldset id="sec80DDB">
+  <fieldset id="sec80DDB" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80DDB — Medical treatment of specified disease</legend>
     <div class="row">
       <div class="field">{{ deductions_form.s80DDB.label_tag }}{{ deductions_form.s80DDB }}{{ deductions_form.s80DDB.errors }}</div>
@@ -151,7 +156,7 @@
     </div>
   </fieldset>
 
-  <fieldset id="sec80E">
+  <fieldset id="sec80E" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80E / 80EE / 80EEA / 80EEB — Loan interest</legend>
     <p><small>Loan-interest schedules for 80E/80EE/80EEA/80EEB share one row shape
       (lender name, loan account no., date of loan, interest paid this year); the aggregate figure for each
@@ -209,7 +214,7 @@
     {% endfor %}
   </fieldset>
 
-  <fieldset id="sec80G">
+  <fieldset id="sec80G" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80G — Donations</legend>
     <p><small>Simplification: one combined formset with a Table (A/B/C/D) selector stands in for the CBDT
       schema's 4 separate donee tables.</small></p>
@@ -232,9 +237,10 @@
       </div>
     {% endfor %}
     <p><small>Eligible amount per Schedule 80G: &#8377;{{ computed.deductions.schedule80G.totalEligible }}</small></p>
+    {% include "itr/_trace_drawer.html" with trace=computed.deductions.schedule80G.trace %}
   </fieldset>
 
-  <fieldset id="sec80GG">
+  <fieldset id="sec80GG" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80GG — Rent paid (no HRA received)</legend>
     <div class="row">
       <div class="field">{{ deductions_form.s80GG.label_tag }}{{ deductions_form.s80GG }}{{ deductions_form.s80GG.errors }}</div>
@@ -243,7 +249,7 @@
     </div>
   </fieldset>
 
-  <fieldset id="sec80GGA">
+  <fieldset id="sec80GGA" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80GGA — Donations for scientific research/rural development</legend>
     <div class="row">
       <div class="field">{{ deductions_form.s80GGA.label_tag }}{{ deductions_form.s80GGA }}{{ deductions_form.s80GGA.errors }}</div>
@@ -260,7 +266,7 @@
     {% endfor %}
   </fieldset>
 
-  <fieldset id="sec80GGC">
+  <fieldset id="sec80GGC" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80GGC — Donations to political parties</legend>
     <div class="row">
       <div class="field">{{ deductions_form.s80GGC.label_tag }}{{ deductions_form.s80GGC }}{{ deductions_form.s80GGC.errors }}</div>
@@ -278,7 +284,7 @@
     {% endfor %}
   </fieldset>
 
-  <fieldset id="sec80TTA">
+  <fieldset id="sec80TTA" class="{% if computed.regime == 'NEW' %}regime-hidden{% endif %}">
     <legend>80TTA / 80TTB — Interest income</legend>
     <div class="row">
       <div class="field">{{ deductions_form.s80TTA.label_tag }}{{ deductions_form.s80TTA }}{{ deductions_form.s80TTA.errors }}</div>
@@ -292,8 +298,8 @@
   </fieldset>
 
   <div class="actions">
-    <button type="submit" name="action" value="save">{{ t.save }}</button>
-    <button type="submit" name="action" value="confirm">{{ t.confirm }}</button>
+    <button type="submit" name="action" value="save">Save</button>
+    <button type="submit" name="action" value="confirm">Confirm</button>
   </div>
 </form>
 {% endblock %}

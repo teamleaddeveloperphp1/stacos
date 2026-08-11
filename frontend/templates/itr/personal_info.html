@@ -1,7 +1,7 @@
 {% extends "itr/base.html" %}
 
-{% block title %}{{ t.screen_personal_info }}{% endblock %}
-{% block page_title %}{{ t.screen_personal_info }}{% endblock %}
+{% block title %}Personal Information{% endblock %}
+{% block page_title %}Personal Information{% endblock %}
 
 {% block content %}
 {% if conflict_message %}
@@ -17,13 +17,18 @@
   </div>
 {% endif %}
 
+<div class="summary-box">
+  <span class="summary-box-title">Tax payable — regime comparison (neutral, computed live from this return)</span>
+  New regime: <strong>&#8377;{{ regime_comparison.NEW }}</strong> &middot;
+  Old regime: <strong>&#8377;{{ regime_comparison.OLD }}</strong>
+</div>
 
 <form method="post">
   {% csrf_token %}
   <input type="hidden" name="_version" value="{{ draft_version }}">
 
   <fieldset id="profile">
-    <legend>{{ t.section_profile }}</legend>
+    <legend>Profile</legend>
     <div class="row">
       <div class="field">{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
       <div class="field">{{ form.middle_name.label_tag }}{{ form.middle_name }}{{ form.middle_name.errors }}</div>
@@ -38,7 +43,7 @@
   </fieldset>
 
   <fieldset id="contact">
-    <legend>{{ t.section_contact }}</legend>
+    <legend>Contact</legend>
     <div class="row">
       <div class="field">{{ form.primary_mobile.label_tag }}{{ form.primary_mobile }}{{ form.primary_mobile.errors }}</div>
       <div class="field">{{ form.secondary_mobile.label_tag }}{{ form.secondary_mobile }}{{ form.secondary_mobile.errors }}</div>
@@ -50,7 +55,7 @@
   </fieldset>
 
   <fieldset id="primaryAddress">
-    <legend>{{ t.section_primary_address }}</legend>
+    <legend>Primary Address</legend>
     <div class="row">
       <div class="field">{{ form.flat_door_building.label_tag }}{{ form.flat_door_building }}{{ form.flat_door_building.errors }}</div>
       <div class="field">{{ form.premise_building_name.label_tag }}{{ form.premise_building_name }}{{ form.premise_building_name.errors }}</div>
@@ -70,16 +75,11 @@
   </fieldset>
 
   <fieldset id="filingSection">
-    <legend>{{ t.section_filing_section }}</legend>
-    <div class="row">
-      <div class="field">{{ form.return_file_sec.label_tag }}{{ form.return_file_sec }}{{ form.return_file_sec.errors }}</div>
-      <div class="field">
-        {{ form.opt_out_of_new_regime.label_tag }}
-        {{ form.opt_out_of_new_regime }}
-        {{ form.opt_out_of_new_regime.errors }}
-        <small>{{ form.opt_out_of_new_regime.help_text }}</small>
-      </div>
-    </div>
+    <legend>Filing Section</legend>
+    <p class="helper-text">
+      {{ filing_section_label }} &middot; {% if regime == 'OLD' %}Old Tax Regime{% else %}New Tax Regime{% endif %}
+      &middot; <a href="{% url 'itr:filing_section' return_id %}">Change</a>
+    </p>
     <div class="row">
       <div class="field">{{ form.orig_return_ack_no.label_tag }}{{ form.orig_return_ack_no }}{{ form.orig_return_ack_no.errors }}</div>
       <div class="field">{{ form.orig_return_filed_date.label_tag }}{{ form.orig_return_filed_date }}{{ form.orig_return_filed_date.errors }}</div>
@@ -92,7 +92,7 @@
   </fieldset>
 
   <fieldset id="seventhProviso">
-    <legend>{{ t.section_seventh_proviso }}</legend>
+    <legend>Seventh Proviso to s.139(1)</legend>
     <div class="field">
       {{ form.seventh_proviso_139.label_tag }}{{ form.seventh_proviso_139 }}{{ form.seventh_proviso_139.errors }}
     </div>
@@ -108,7 +108,7 @@
   </fieldset>
 
   <fieldset id="representativeAssessee">
-    <legend>{{ t.section_representative_assessee }}</legend>
+    <legend>Representative Assessee</legend>
     <div class="row">
       <div class="field">{{ form.representative_assessee_flag.label_tag }}{{ form.representative_assessee_flag }}{{ form.representative_assessee_flag.errors }}</div>
       <div class="field">{{ form.verification_capacity.label_tag }}{{ form.verification_capacity }}{{ form.verification_capacity.errors }}</div>
@@ -125,7 +125,7 @@
   </fieldset>
 
   <fieldset id="bankDetails">
-    <legend>{{ t.section_bank_details }} <span class="required-marker">*</span></legend>
+    <legend>Bank Details <span class="required-marker">*</span></legend>
     <p class="helper-text">At least one bank account is required, with exactly one nominated for refund.</p>
     {% if bank_errors %}
       <ul class="errorlist">
@@ -152,8 +152,8 @@
   </fieldset>
 
   <div class="actions">
-    <button type="submit" name="action" value="save">{{ t.save }}</button>
-    <button type="submit" name="action" value="confirm">{{ t.confirm }}</button>
+    <button type="submit" name="action" value="save">Save</button>
+    <button type="submit" name="action" value="confirm">Confirm</button>
   </div>
 </form>
 {% endblock %}

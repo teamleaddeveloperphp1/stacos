@@ -1,7 +1,7 @@
 {% extends "itr/base.html" %}
 
-{% block title %}{{ t.screen_tax_liability }}{% endblock %}
-{% block page_title %}{{ t.screen_tax_liability }}{% endblock %}
+{% block title %}Tax Liability{% endblock %}
+{% block page_title %}Tax Liability{% endblock %}
 
 {% block content %}
 {% if conflict_message %}
@@ -105,8 +105,8 @@
   </fieldset>
 
   <div class="actions">
-    <button type="submit" name="action" value="save">{{ t.save }}</button>
-    <button type="submit" name="action" value="confirm">{{ t.confirm }}</button>
+    <button type="submit" name="action" value="save">Save</button>
+    <button type="submit" name="action" value="confirm">Confirm</button>
   </div>
 </form>
 {% endblock %}

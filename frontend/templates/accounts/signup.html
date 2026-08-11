@@ -1,6 +1,6 @@
 {% extends "app_base.html" %}
 
-{% block title %}{{ t.signup_heading }} · STACOS.ai{% endblock %}
+{% block title %}Sign Up · STACOS.ai{% endblock %}
 {% block main_class %} full-bleed{% endblock %}
 {% block body_class %}signin-page{% endblock %}
 {% block topbar %}{% endblock %}
@@ -34,7 +34,7 @@
 
     <div class="signin-slot-middle">
       <div class="signin-form-wrap">
-        <h2 class="signin-card-title">{{ t.signup_heading }}</h2>
+        <h2 class="signin-card-title">Sign Up</h2>
         <p class="signin-card-subtitle">Create your account to get started.</p>
 
         {% if form.non_field_errors %}
@@ -81,7 +81,7 @@
             {% if form.captcha.errors %}<div class="signin-error" role="alert">{{ form.captcha.errors|first }}</div>{% endif %}
           </div>
 
-          <button type="submit" class="signin-submit">{{ t.create_account }}</button>
+          <button type="submit" class="signin-submit">Create account</button>
         </form>
 
         <p class="signin-switch">Already have an account? <a href="{% url 'accounts:login' %}"><strong>Sign in</strong></a></p>

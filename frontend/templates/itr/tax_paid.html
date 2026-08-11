@@ -1,7 +1,7 @@
 {% extends "itr/base.html" %}
 
-{% block title %}{{ t.screen_tax_paid }}{% endblock %}
-{% block page_title %}{{ t.screen_tax_paid }}{% endblock %}
+{% block title %}Tax Paid{% endblock %}
+{% block page_title %}Tax Paid{% endblock %}
 
 {% block content %}
 {% if conflict_message %}
@@ -20,12 +20,21 @@
 
 <div class="tp-summary">
   Total Taxes Paid: <strong>&#8377;{{ total_taxes_paid_display }}</strong>
-  <div><small>TDS1: &#8377;{{ computed.taxesPaid.tds1 }} &middot;
-    TDS2: &#8377;{{ computed.taxesPaid.tds2 }} &middot;
-    TDS3: &#8377;{{ computed.taxesPaid.tds3 }} &middot;
-    TCS: &#8377;{{ computed.taxesPaid.tcs }} &middot;
-    Advance tax: &#8377;{{ computed.taxesPaid.advanceTax }} &middot;
-    Self-assessment tax: &#8377;{{ computed.taxesPaid.selfAssessmentTax }}</small></div>
+</div>
+
+<div class="summary-box-row">
+  <div class="tds-summary">
+    <span class="summary-box-title">TDS / TCS deducted at source</span>
+    <small>TDS1: &#8377;{{ computed.taxesPaid.tds1 }} &middot;
+      TDS2: &#8377;{{ computed.taxesPaid.tds2 }} &middot;
+      TDS3: &#8377;{{ computed.taxesPaid.tds3 }} &middot;
+      TCS: &#8377;{{ computed.taxesPaid.tcs }}</small>
+  </div>
+  <div class="direct-tax-summary">
+    <span class="summary-box-title">Tax paid directly (ITR)</span>
+    <small>Advance tax: &#8377;{{ computed.taxesPaid.advanceTax }} &middot;
+      Self-assessment tax: &#8377;{{ computed.taxesPaid.selfAssessmentTax }}</small>
+  </div>
 </div>
 
 <form method="post">
@@ -130,8 +139,8 @@
   </fieldset>
 
   <div class="actions">
-    <button type="submit" name="action" value="save">{{ t.save }}</button>
-    <button type="submit" name="action" value="confirm">{{ t.confirm }}</button>
+    <button type="submit" name="action" value="save">Save</button>
+    <button type="submit" name="action" value="confirm">Confirm</button>
   </div>
 </form>
 {% endblock %}

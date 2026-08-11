@@ -1,0 +1,44 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if is_edit %}Edit Tax Filer{% else %}Add Tax Filer{% endif %} · stacos.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'itr/css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'itr/css/app.css' %}">
+</head>
+<body class="dashboard-body">
+  <main class="dashboard">
+    <p class="breadcrumb"><a href="{% url 'services:dashboard' %}">Home</a> &rsaquo; <a href="{% url 'itr:member_list' %}">Members</a> &rsaquo; {% if is_edit %}Edit{% else %}Add{% endif %}</p>
+
+    <fieldset>
+      <legend>{% if is_edit %}Edit Tax Filer{% else %}Add Tax Filer{% endif %}</legend>
+      <form method="post">
+        {% csrf_token %}
+        <div class="row">
+          <div class="field">{{ form.pan.label_tag }}{{ form.pan }}{{ form.pan.errors }}</div>
+          <div class="field">{{ form.dob.label_tag }}{{ form.dob }}{{ form.dob.errors }}</div>
+          <div class="field">{{ form.email.label_tag }}{{ form.email }}{{ form.email.errors }}</div>
+        </div>
+        <div class="row">
+          <div class="field">{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
+          <div class="field">{{ form.middle_name.label_tag }}{{ form.middle_name }}{{ form.middle_name.errors }}</div>
+          <div class="field">{{ form.last_name.label_tag }}{{ form.last_name }}{{ form.last_name.errors }}</div>
+        </div>
+        <div class="row">
+          <div class="field">{{ form.gender.label_tag }}{{ form.gender }}{{ form.gender.errors }}</div>
+          <div class="field">{{ form.father_name.label_tag }}{{ form.father_name }}{{ form.father_name.errors }}</div>
+          <div class="field">{{ form.mobile_number.label_tag }}{{ form.mobile_number }}{{ form.mobile_number.errors }}</div>
+        </div>
+        <div class="actions">
+          <button type="submit">{% if is_edit %}Save{% else %}Add Tax Filer{% endif %}</button>
+          <a class="btn" href="{% url 'itr:member_list' %}">Cancel</a>
+        </div>
+      </form>
+    </fieldset>
+  </main>
+</body>
+</html>

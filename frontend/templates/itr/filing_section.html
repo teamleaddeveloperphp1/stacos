@@ -1,0 +1,30 @@
+{% extends "itr/base.html" %}
+
+{% block title %}Filing Section{% endblock %}
+{% block page_title %}Filing Section{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+
+  <fieldset id="filingSection">
+    <legend>Filing Section</legend>
+    <div class="row">
+      <div class="field">{{ form.return_file_sec.label_tag }}{{ form.return_file_sec }}{{ form.return_file_sec.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">
+        {{ form.opt_out_of_new_regime.label_tag }}
+        {{ form.opt_out_of_new_regime }}
+        {{ form.opt_out_of_new_regime.errors }}
+        <small>{{ form.opt_out_of_new_regime.help_text }}</small>
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit">Continue</button>
+  </div>
+</form>
+{% endblock %}
