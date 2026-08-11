@@ -12,6 +12,7 @@ catches a corrupted draft.
 from dataclasses import dataclass, field
 
 from itr.engine.compute import compute as compute_return
+from itr.engine.derive import derive_schedule_totals
 from itr.model_blank import blank_80d, blank_80ddu, blank_address, blank_hra, blank_return_model
 from itr.util.num import n
 
@@ -337,21 +338,18 @@ def import_from_json(document, ctx):
     # ---- Deductions -----------------------------------------------------------
     usr = _obj(inc.get('UsrDeductUndChapVIA'))
     d = m['deductions']
-    d['s80C'] = n(usr.get('Section80C'))
-    d['s80CCC'] = n(usr.get('Section80CCC'))
+    # s80C, s80CCC, s80DD, s80U, s80E, s80EE, s80EEA, s80EEB are NOT read
+    # from the JSON's own Section80C/etc. fields -- they're derived below
+    # (derive_schedule_totals) from the schedule rows this function reads
+    # a little further down, same as the web form-processing path.
     d['s80CCD1'] = n(usr.get('Section80CCDEmployeeOrSE'))
     d['s80CCD1B'] = n(usr.get('Section80CCD1B'))
     d['s80CCD2'] = n(usr.get('Section80CCDEmployer'))
     d['s80CCH'] = n(usr.get('AnyOthSec80CCH'))
     d['s80D'] = n(usr.get('Section80D'))
-    d['s80DD'] = n(usr.get('Section80DD'))
     d['s80DDB'] = n(usr.get('Section80DDB'))
     d['s80DDBUsrType'] = _s(usr.get('Section80DDBUsrType')) or ''
     d['s80DDBDisease'] = _s(usr.get('NameOfSpecDisease80DDB'))
-    d['s80E'] = n(usr.get('Section80E'))
-    d['s80EE'] = n(usr.get('Section80EE'))
-    d['s80EEA'] = n(usr.get('Section80EEA'))
-    d['s80EEB'] = n(usr.get('Section80EEB'))
     d['s80G'] = n(usr.get('Section80G'))
     d['s80GG'] = n(usr.get('Section80GG'))
     d['form10BAAckNo'] = _s(usr.get('Form10BAAckNum'))
@@ -360,7 +358,6 @@ def import_from_json(document, ctx):
     d['s80GGC'] = n(usr.get('Section80GGC'))
     d['s80TTA'] = n(usr.get('Section80TTA'))
     d['s80TTB'] = n(usr.get('Section80TTB'))
-    d['s80U'] = n(usr.get('Section80U'))
     d['pranNumbers'] = [_s(r.get('PRANNum')) for r in _arr(usr.get('PRANDtls')) if _s(r.get('PRANNum'))]
     d['pensionContribution80CCC'] = [
         {
@@ -488,6 +485,13 @@ def import_from_json(document, ctx):
         }
         for r in _arr(_obj(p.get('Schedule80GGC')).get('Schedule80GGCDetails'))
     ]
+
+    # Never trust a written total -- derive it from the schedule just
+    # imported, same as the web form-processing path does (itr.engine.
+    # derive.derive_schedule_totals). A hand-crafted or third-party JSON
+    # whose Section80C/Section80DD/etc. figures don't match its own
+    # schedule rows gets corrected here rather than silently imported as-is.
+    derive_schedule_totals(m)
 
     # ---- Tax paid ---------------------------------------------------------
     m['taxPaid']['tds1'] = []

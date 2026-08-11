@@ -1,18 +1,5 @@
 [
   {
-    "id": "B-1",
-    "screen": "PERSONAL_INFO",
-    "tier": 1,
-    "fields": ["personalInfo.aadhaar"],
-    "appliesWhen": "true",
-    "assert": "aadhaarLinkedToPan == true",
-    "message": "Linking of Aadhaar and PAN is required to avoid the consequences of not linking PAN and Aadhaar in eligible cases, as per Circular 03/2023.",
-    "remediation": "Link the Aadhaar with the PAN on the e-filing portal before the return is uploaded.",
-    "deepLink": "PERSONAL_INFO#aadhaar",
-    "values": {},
-    "source": "Linking of Aadhar and PAN is required to avoid consequences of not linking PAN and Aadhar in eligible cases as per Circular 03/2023"
-  },
-  {
     "id": "B-2",
     "screen": "PERSONAL_INFO",
     "tier": 1,

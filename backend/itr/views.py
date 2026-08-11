@@ -1,20 +1,14 @@
-import copy
-
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
-from django.utils import timezone
 
-from itr.engine.compute import compute
-from itr.engine.derive import derive_schedule_totals
-from itr.engine.validate import validate
-from itr.serialize.generate import GenerationBlockedError, generate_json, generate_json_or_throw
+from itr.serialize.generate import GenerationBlockedError
+from itr.services import return_service
+from itr.services.return_service import VersionConflictError
 from itr.forms import (
     BankAccountFormSet,
     ChallanFormSet,
-    bank_accounts_structural_errors,
     DeductionsForm,
     Disability80DDUForm,
     ExemptAllowanceFormSet,
@@ -45,10 +39,7 @@ from itr.forms import (
     Tds2FormSet,
     Tds3FormSet,
 )
-from itr.deep_links import resolve_deep_link
-from itr.model_blank import blank_address
-from itr.models import AuditLogEntry, TaxFiler, TaxReturn
-from itr.pdf import render_computation_sheet_pdf, render_return_preview_pdf, render_validation_report_pdf
+from itr.models import TaxFiler, TaxReturn
 from itr.rules.registry import RULE_SET_VERSION
 from itr.screens import build_menu_items
 from itr.serialize.json_schema_validator import SCHEMA_VERSION
@@ -60,9 +51,11 @@ _RETURN_FILE_SEC_LABELS = dict(RETURN_FILE_SEC_CHOICES)
 def _chrome_context(tax_return, computed=None):
     """Global chrome shown on every screen (§3.3): taxpayer name/PAN/AY/filing
     section, the derived regime badge, a live refund/payable ticker, and the
-    rule-set/schema/constants versions + draft save status for the footer."""
+    rule-set/schema/constants versions + draft save status for the footer.
+    Numbers come from the service layer, not a direct compute() call here,
+    so this reads the same figures the API will."""
     model = tax_return.data
-    computed = computed if computed is not None else compute(model)
+    computed = computed if computed is not None else return_service.get_computation(tax_return.pk, tax_return.owner)
     pi = model['personalInfo']
     name = ' '.join(x for x in (pi['firstName'], pi['middleName'], pi['lastName']) if x).strip()
 
@@ -140,10 +133,10 @@ def filing_section(request, return_id):
     if request.method == 'POST':
         form = FilingSectionForm(request.POST)
         if form.is_valid():
-            fs['returnFileSec'] = form.cleaned_data['return_file_sec']
-            fs['optOutOfNewRegime'] = form.cleaned_data['opt_out_of_new_regime']
-            tax_return.bump_version()
-            tax_return.save()
+            result = return_service.save_filing_section(
+                return_id, request.user, form.cleaned_data, _expected_version(request),
+            )
+            _sync_tax_return(tax_return, result)
             return redirect('itr:personal_info', return_id=return_id)
     else:
         form = FilingSectionForm(initial={
@@ -245,10 +238,6 @@ def _screen_status(tax_return):
     return tax_return.data.get('screenStatus', {})
 
 
-def _set_screen_status(tax_return, screen_id, status):
-    tax_return.data.setdefault('screenStatus', {})[screen_id] = status
-
-
 def _is_ajax(request):
     """§3.3 autosave (every 20s + on blur) posts in the background via
     fetch(); it must never navigate the page away from under the preparer,
@@ -256,75 +245,32 @@ def _is_ajax(request):
     return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
 
-def _ajax_saved_response(tax_return):
+def _expected_version(request):
+    raw = request.POST.get('_version')
+    return int(raw) if raw is not None else None
+
+
+def _ajax_saved_response(result):
     return JsonResponse({
         'saved': True,
-        'version': tax_return.version,
-        'savedAt': tax_return.updated_at.strftime('%H:%M:%S'),
+        'version': result['version'],
+        'savedAt': result['updated_at'].strftime('%H:%M:%S'),
     })
 
 
-def _check_version_conflict(request, tax_return):
-    """§3.3 optimistic locking: the form carries the draft version it was
-    loaded against (`_version`, stamped from `draft_version` in the chrome
-    context); if the stored version has moved on since, someone else's edit
-    would otherwise be silently overwritten. Returns a conflict message, or
-    None if it's safe to proceed."""
-    submitted = request.POST.get('_version')
-    if submitted is None or str(tax_return.version) == submitted:
-        return None
-    last = tax_return.audit_log.exclude(kind=AuditLogEntry.KIND_VALIDATION_RUN).first()
-    who = last.actor.username if last and last.actor else 'someone'
-    when = last.at.strftime('%H:%M') if last else 'a moment ago'
-    return f'This return was edited by {who} at {when} since you opened it. Reload the page to see the latest version before continuing.'
+def _format_regime_comparison(raw):
+    return {'NEW': format_indian(raw['NEW']), 'OLD': format_indian(raw['OLD'])}
 
 
-def _diff_model(old, new, path=''):
-    """Recursively diff two ReturnModel dict trees, yielding (path, old, new)
-    for every leaf that changed. Lists are compared element-by-element when
-    their lengths match (so a single row edit reports as one leaf change per
-    field), and as a single whole-list change otherwise (a row added/removed)
-    -- diffing an insert/delete field-by-field would misattribute every row
-    after the edit point."""
-    changes = []
-    if isinstance(old, dict) and isinstance(new, dict):
-        for key in set(old.keys()) | set(new.keys()):
-            changes.extend(_diff_model(old.get(key), new.get(key), f'{path}.{key}' if path else key))
-    elif isinstance(old, list) and isinstance(new, list) and len(old) == len(new):
-        for i, (o, n) in enumerate(zip(old, new)):
-            changes.extend(_diff_model(o, n, f'{path}[{i}]'))
-    elif old != new:
-        changes.append((path, old, new))
-    return changes
-
-
-def _log_field_changes(tax_return, before, after, actor):
-    """Architecture mandate 6: every field change is audited (who, when, old
-    value, new value). `before`/`after` are ReturnModel dict snapshots taken
-    around a single screen's save."""
-    entries = [
-        AuditLogEntry(
-            tax_return=tax_return, actor=actor, kind=AuditLogEntry.KIND_FIELD_CHANGE,
-            field_path=path, old_value=old_value, new_value=new_value,
-        )
-        for path, old_value, new_value in _diff_model(before, after)
-    ]
-    if entries:
-        AuditLogEntry.objects.bulk_create(entries)
-
-
-def _address_from_form(cleaned, prefix=''):
-    return {
-        'flatDoorBuilding': cleaned[f'{prefix}flat_door_building'],
-        'premiseBuildingName': cleaned[f'{prefix}premise_building_name'],
-        'roadStreet': cleaned[f'{prefix}road_street'],
-        'areaLocality': cleaned[f'{prefix}area_locality'],
-        'townCityDistrict': cleaned[f'{prefix}town_city_district'],
-        'stateCode': cleaned[f'{prefix}state_code'],
-        'countryCode': '91',
-        'pinCode': cleaned[f'{prefix}pin_code'],
-        'zipCode': '',
-    }
+def _sync_tax_return(tax_return, result):
+    """After a non-redirecting save_screen/confirm_screen call, bring the
+    view's already-loaded tax_return object's in-memory state up to date
+    from the service's return value -- no second DB round-trip, and no
+    "did the caller remember to re-read?" question for anything built on
+    top of this later."""
+    tax_return.data = result['model']
+    tax_return.version = result['version']
+    tax_return.updated_at = result['updated_at']
 
 
 def _personal_info_initial(model):
@@ -371,53 +317,6 @@ def _personal_info_initial(model):
     }
 
 
-def _apply_personal_info_form(model, cleaned):
-    pi = model['personalInfo']
-    pi['firstName'] = cleaned['first_name']
-    pi['middleName'] = cleaned['middle_name']
-    pi['lastName'] = cleaned['last_name']
-    pi['pan'] = cleaned['pan']
-    pi['dob'] = cleaned['dob'].isoformat() if cleaned['dob'] else ''
-    pi['aadhaar'] = cleaned['aadhaar']
-    pi['employerCategory'] = cleaned['employer_category']
-    pi['contact']['primaryMobile'] = cleaned['primary_mobile']
-    pi['contact']['secondaryMobile'] = cleaned['secondary_mobile']
-    pi['contact']['primaryEmail'] = cleaned['primary_email']
-    pi['contact']['secondaryEmail'] = cleaned['secondary_email']
-    pi['primaryAddress'] = _address_from_form(cleaned)
-    pi['secondaryAddressSameAsPrimary'] = cleaned['secondary_address_same_as_primary']
-    pi['secondaryAddress'] = dict(pi['primaryAddress']) if cleaned['secondary_address_same_as_primary'] == 'Y' else pi['secondaryAddress']
-
-    fs = model['filingStatus']
-    fs['origReturnAckNo'] = cleaned.get('orig_return_ack_no') or ''
-    fs['origReturnFiledDate'] = cleaned['orig_return_filed_date'].isoformat() if cleaned.get('orig_return_filed_date') else ''
-    fs['origReturnFileSec'] = cleaned.get('orig_return_file_sec')
-    fs['a23ResponsesOriginal'] = cleaned.get('a23_responses_original') or ''
-    fs['a23ResponsesCurrent'] = cleaned.get('a23_responses_current') or ''
-    fs['seventhProviso139'] = cleaned.get('seventh_proviso_139') or 'N'
-    fs['seventhProviso'] = {
-        'travelExpenseAbove2Lakh': cleaned.get('travel_expense_above_2lakh') or 'N',
-        'travelExpenseAmount': cleaned.get('travel_expense_amount'),
-        'electricityAbove1Lakh': cleaned.get('electricity_above_1lakh') or 'N',
-        'electricityAmount': cleaned.get('electricity_amount'),
-        'clauseIvApplies': cleaned.get('clause_iv_applies') or 'N',
-        'clauseIvDetails': fs['seventhProviso'].get('clauseIvDetails', []),
-    }
-    fs['representativeAssesseeFlag'] = cleaned.get('representative_assessee_flag') or 'N'
-    if fs['representativeAssesseeFlag'] == 'Y':
-        fs['representativeAssessee'] = {
-            'name': cleaned.get('representative_name') or '',
-            'email': cleaned.get('representative_email') or '',
-            'mobile': cleaned.get('representative_mobile') or '',
-            'pan': (cleaned.get('representative_pan') or '').upper(),
-            'capacityOther': cleaned.get('representative_capacity_other') or '',
-        }
-    else:
-        fs['representativeAssessee'] = None
-
-    model['verification']['capacity'] = cleaned.get('verification_capacity') or 'S'
-
-
 def _bank_accounts_initial(model):
     return [
         {
@@ -431,97 +330,51 @@ def _bank_accounts_initial(model):
     ]
 
 
-def _apply_bank_formset(model, formset):
-    accounts = []
-    for i, form in enumerate(formset):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        cleaned = form.cleaned_data
-        if not cleaned.get('ifsc'):
-            continue
-        existing = model.get('bankAccounts', [])
-        prior = existing[i] if i < len(existing) else {}
-        ifsc = cleaned['ifsc'].strip().upper()
-        bank_name = cleaned.get('bank_name') or prior.get('bankName', '')
-
-        accounts.append({
-            'id': prior.get('id') or f'bank-{i + 1}',
-            'ifsc': ifsc,
-            'bankName': bank_name,
-            'accountNumber': cleaned['account_number'],
-            'accountType': cleaned['account_type'],
-            'nominateForRefund': cleaned['nominate_for_refund'],
-        })
-    model['bankAccounts'] = accounts
-
-
-def _regime_comparison(model):
-    """A neutral, no-recommendation side-by-side: tax payable under both
-    regimes, computed live from the same model (addendum §1.3's "a neutral
-    side-by-side calculator is acceptable" carve-out). Never shown as advice
-    -- just the two numbers."""
-    other = copy.deepcopy(model)
-    other['filingStatus']['optOutOfNewRegime'] = 'N' if model['filingStatus']['optOutOfNewRegime'] == 'Y' else 'Y'
-    this_computed = compute(model)
-    other_computed = compute(other)
-    by_regime = {this_computed['regime']: this_computed, other_computed['regime']: other_computed}
-    return {
-        'NEW': format_indian(by_regime['NEW']['totalTaxFeeAndInterest']),
-        'OLD': format_indian(by_regime['OLD']['totalTaxFeeAndInterest']),
-    }
-
-
 def personal_info(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     bank_errors = []
     conflict_message = None
     report = None
+    computed = None
 
     if request.method == 'POST':
         form = PersonalInfoForm(request.POST)
         formset = BankAccountFormSet(request.POST, prefix='bank')
-        conflict_message = _check_version_conflict(request, tax_return)
-        if conflict_message:
-            if _is_ajax(request):
-                return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
-        elif form.is_valid() and formset.is_valid():
-            before = copy.deepcopy(model)
-            _apply_personal_info_form(model, form.cleaned_data)
-            _apply_bank_formset(model, formset)
-            _log_field_changes(tax_return, before, model, request.user if request.user.is_authenticated else None)
-            tax_return.bump_version()
-
+        if form.is_valid() and formset.is_valid():
+            payload = {
+                'personal_info': form.cleaned_data,
+                'bank_accounts': [f.cleaned_data for f in formset],
+            }
             action = request.POST.get('action', 'save')
-            if action == 'confirm':
-                report = validate(model, tier=2, screen='PERSONAL_INFO')
-                # §4.6: at least one bank account, exactly one nominated -- a
-                # screen-level product constraint, not a numbered CBDT rule,
-                # so it's checked alongside (not inside) the rule registry.
-                bank_errors = bank_accounts_structural_errors(model.get('bankAccounts', []))
-                if report.errors or bank_errors:
-                    _set_screen_status(tax_return, 'PERSONAL_INFO', 'HAS_ERRORS')
+            try:
+                if action == 'confirm':
+                    result = return_service.confirm_screen(
+                        return_id, request.user, 'PERSONAL_INFO', payload, _expected_version(request),
+                    )
+                    report = result['report']
+                    bank_errors = result['bank_errors']
+                    if result['confirmed']:
+                        return redirect('itr:gross_total_income', return_id=return_id)
                 else:
-                    _set_screen_status(tax_return, 'PERSONAL_INFO', 'CONFIRMED')
-                tax_return.save()
-                AuditLogEntry.objects.create(
-                    tax_return=tax_return, actor=request.user if request.user.is_authenticated else None,
-                    kind=AuditLogEntry.KIND_VALIDATION_RUN,
-                    payload={'screen': 'PERSONAL_INFO', 'errors': [e.ruleId for e in report.errors], 'bankErrors': bank_errors},
-                )
-                if not report.errors and not bank_errors:
-                    return redirect('itr:gross_total_income', return_id=return_id)
-            else:
-                _set_screen_status(tax_return, 'PERSONAL_INFO', 'IN_PROGRESS')
-                tax_return.save()
+                    result = return_service.save_screen(
+                        return_id, request.user, 'PERSONAL_INFO', payload, _expected_version(request),
+                    )
+                    if _is_ajax(request):
+                        return _ajax_saved_response(result)
+                    return redirect('itr:personal_info', return_id=return_id)
+                _sync_tax_return(tax_return, result)
+                model = tax_return.data
+                computed = result['computed']
+            except VersionConflictError as e:
+                conflict_message = e.message
                 if _is_ajax(request):
-                    return _ajax_saved_response(tax_return)
-                return redirect('itr:personal_info', return_id=return_id)
+                    return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
     else:
         form = PersonalInfoForm(initial=_personal_info_initial(model))
         formset = BankAccountFormSet(initial=_bank_accounts_initial(model), prefix='bank')
 
-    regime_comparison = _regime_comparison(model)
+    regime_comparison = _format_regime_comparison(return_service.regime_comparison(return_id, request.user))
 
     return render(request, 'itr/personal_info.html', {
         'ay': model['ay'],
@@ -534,7 +387,7 @@ def personal_info(request, return_id):
         'bank_errors': bank_errors,
         'conflict_message': conflict_message,
         'report': report,
-        **_chrome_context(tax_return),
+        **_chrome_context(tax_return, computed),
     })
 
 
@@ -609,119 +462,12 @@ def _gti_initial(model):
     return salary, hra, exempt_allowances, properties, other_sources, exempt_income
 
 
-def _apply_gti_forms(model, salary_cleaned, hra_cleaned, allowance_formset, property_formset, other_source_formset, exempt_income_formset):
-    inc = model['income']
-
-    inc['salary17_1'] = salary_cleaned['salary17_1']
-    inc['perquisites17_2'] = salary_cleaned['perquisites17_2']
-    inc['profitsInLieu17_3'] = salary_cleaned['profits_in_lieu17_3']
-    inc['entertainmentAllowance16ii'] = salary_cleaned['entertainment_allowance_16ii'] or 0
-    inc['professionalTax16iii'] = salary_cleaned['professional_tax_16iii'] or 0
-
-    inc['hra10_13A'] = {
-        'placeOfWork': hra_cleaned.get('place_of_work') or '',
-        'actualHraReceived': hra_cleaned.get('actual_hra_received') or 0,
-        'actualRentPaid': hra_cleaned.get('actual_rent_paid') or 0,
-        'salary17_1': salary_cleaned['salary17_1'],
-        'basicSalary': hra_cleaned.get('basic_salary') or 0,
-        'dearnessAllowance': hra_cleaned.get('dearness_allowance') or 0,
-    }
-
-    existing_allowances = inc.get('exemptAllowances', [])
-    allowances = []
-    for i, form in enumerate(allowance_formset):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        cleaned = form.cleaned_data
-        if not cleaned.get('nature'):
-            continue
-        prior = existing_allowances[i] if i < len(existing_allowances) else {}
-        allowances.append({
-            'id': prior.get('id') or f'allow-{i + 1}',
-            'nature': cleaned['nature'],
-            'amount': cleaned.get('amount') or 0,
-        })
-    inc['exemptAllowances'] = allowances
-
-    existing_properties = inc.get('properties', [])
-    properties = []
-    for i, form in enumerate(property_formset):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        cleaned = form.cleaned_data
-        if not cleaned.get('property_type'):
-            continue
-        prior = existing_properties[i] if i < len(existing_properties) else {}
-        address = prior.get('address') or blank_address()
-        address = {
-            **address,
-            'flatDoorBuilding': cleaned.get('flat_door_building') or address.get('flatDoorBuilding', ''),
-            'areaLocality': cleaned.get('area_locality') or address.get('areaLocality', ''),
-            'townCityDistrict': cleaned.get('town_city_district') or address.get('townCityDistrict', ''),
-            'stateCode': cleaned.get('state_code') or address.get('stateCode', ''),
-            'pinCode': cleaned.get('pin_code') or address.get('pinCode', ''),
-        }
-        properties.append({
-            'id': prior.get('id') or f'hp-{i + 1}',
-            'address': address,
-            'propertyOwner': cleaned.get('property_owner') or prior.get('propertyOwner', ''),
-            'propertyOwnerOther': prior.get('propertyOwnerOther', ''),
-            'propertyType': cleaned['property_type'],
-            'coOwned': cleaned.get('co_owned') or 'N',
-            'assesseeSharePercent': cleaned.get('assessee_share_percent') or 0,
-            'coOwners': prior.get('coOwners', []),
-            'tenants': prior.get('tenants', []),
-            'grossRent': cleaned.get('gross_rent') or 0,
-            'localTaxes': cleaned.get('local_taxes') or 0,
-            'rentNotRealized': cleaned.get('rent_not_realized') or 0,
-            'interestOnBorrowedCapital': cleaned.get('interest_on_borrowed_capital') or 0,
-            'schedule24B': prior.get('schedule24B', []),
-            'arrearsUnrealisedRentReceived': prior.get('arrearsUnrealisedRentReceived', 0),
-        })
-    inc['properties'] = properties
-
-    existing_other_sources = inc.get('otherSources', [])
-    other_sources = []
-    for i, form in enumerate(other_source_formset):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        cleaned = form.cleaned_data
-        if not cleaned.get('nature'):
-            continue
-        prior = existing_other_sources[i] if i < len(existing_other_sources) else {}
-        other_sources.append({
-            'id': prior.get('id') or f'os-{i + 1}',
-            'nature': cleaned['nature'],
-            'otherNatureDescription': prior.get('otherNatureDescription', ''),
-            'amount': cleaned.get('amount') or 0,
-            'dividendQuarterly': prior.get('dividendQuarterly'),
-        })
-    inc['otherSources'] = other_sources
-
-    existing_exempt_income = inc.get('exemptIncome', [])
-    exempt_income = []
-    for i, form in enumerate(exempt_income_formset):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        cleaned = form.cleaned_data
-        if not cleaned.get('category') and not cleaned.get('sub_category'):
-            continue
-        prior = existing_exempt_income[i] if i < len(existing_exempt_income) else {}
-        exempt_income.append({
-            'id': prior.get('id') or f'ei-{i + 1}',
-            'category': cleaned.get('category') or '',
-            'subCategory': cleaned.get('sub_category') or '',
-            'description': cleaned.get('description') or '',
-            'amount': cleaned.get('amount') or 0,
-        })
-    inc['exemptIncome'] = exempt_income
-
-
 def gross_total_income(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
     report = None
+    computed = None
 
     if request.method == 'POST':
         salary_form = SalaryForm(request.POST)
@@ -739,40 +485,38 @@ def gross_total_income(request, return_id):
             and other_source_formset.is_valid()
             and exempt_income_formset.is_valid()
         )
-        conflict_message = _check_version_conflict(request, tax_return)
-        if conflict_message:
-            if _is_ajax(request):
-                return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
-        elif forms_valid:
-            before = copy.deepcopy(model)
-            _apply_gti_forms(
-                model, salary_form.cleaned_data, hra_form.cleaned_data, allowance_formset,
-                property_formset, other_source_formset, exempt_income_formset,
-            )
-            _log_field_changes(tax_return, before, model, request.user if request.user.is_authenticated else None)
-            tax_return.bump_version()
-
+        if forms_valid:
+            payload = {
+                'salary': salary_form.cleaned_data,
+                'hra': hra_form.cleaned_data,
+                'allowances': [f.cleaned_data for f in allowance_formset],
+                'properties': [f.cleaned_data for f in property_formset],
+                'other_sources': [f.cleaned_data for f in other_source_formset],
+                'exempt_income': [f.cleaned_data for f in exempt_income_formset],
+            }
             action = request.POST.get('action', 'save')
-            if action == 'confirm':
-                report = validate(model, tier=2, screen='GROSS_TOTAL_INCOME')
-                if report.errors:
-                    _set_screen_status(tax_return, 'GROSS_TOTAL_INCOME', 'HAS_ERRORS')
+            try:
+                if action == 'confirm':
+                    result = return_service.confirm_screen(
+                        return_id, request.user, 'GROSS_TOTAL_INCOME', payload, _expected_version(request),
+                    )
+                    report = result['report']
+                    if result['confirmed']:
+                        return redirect('itr:total_deductions', return_id=return_id)
                 else:
-                    _set_screen_status(tax_return, 'GROSS_TOTAL_INCOME', 'CONFIRMED')
-                tax_return.save()
-                AuditLogEntry.objects.create(
-                    tax_return=tax_return, actor=request.user if request.user.is_authenticated else None,
-                    kind=AuditLogEntry.KIND_VALIDATION_RUN,
-                    payload={'screen': 'GROSS_TOTAL_INCOME', 'errors': [e.ruleId for e in report.errors]},
-                )
-                if not report.errors:
-                    return redirect('itr:total_deductions', return_id=return_id)
-            else:
-                _set_screen_status(tax_return, 'GROSS_TOTAL_INCOME', 'IN_PROGRESS')
-                tax_return.save()
+                    result = return_service.save_screen(
+                        return_id, request.user, 'GROSS_TOTAL_INCOME', payload, _expected_version(request),
+                    )
+                    if _is_ajax(request):
+                        return _ajax_saved_response(result)
+                    return redirect('itr:gross_total_income', return_id=return_id)
+                _sync_tax_return(tax_return, result)
+                model = tax_return.data
+                computed = result['computed']
+            except VersionConflictError as e:
+                conflict_message = e.message
                 if _is_ajax(request):
-                    return _ajax_saved_response(tax_return)
-                return redirect('itr:gross_total_income', return_id=return_id)
+                    return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
     else:
         salary_initial, hra_initial, allowances_initial, properties_initial, other_sources_initial, exempt_income_initial = _gti_initial(model)
         salary_form = SalaryForm(initial=salary_initial)
@@ -782,7 +526,8 @@ def gross_total_income(request, return_id):
         other_source_formset = OtherSourceFormSet(initial=other_sources_initial, prefix='os')
         exempt_income_formset = ExemptIncomeFormSet(initial=exempt_income_initial, prefix='ei')
 
-    computed = compute(model)
+    if computed is None:
+        computed = return_service.get_computation(return_id, request.user)
 
     return render(request, 'itr/gross_total_income.html', {
         'ay': model['ay'],
@@ -927,230 +672,12 @@ def _deductions_initial(model):
     }
 
 
-def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d_cleaned,
-                             disability_80dd_cleaned, disability_80u_cleaned,
-                             sched80e_fs, sched80ee_fs, sched80eea_fs, sched80eeb_fs,
-                             sched80g_fs, sched80gga_fs, sched80ggc_fs):
-    d = model['deductions']
-
-    # --- Schedule 80C / 80CCC: s80C and s80CCC are derived (not user fields)
-    # because tier-2 rules A-241/A-301-339 require an exact match to the
-    # schedule total.
-    existing = d.get('schedule80C', [])
-    rows = []
-    for i, form in enumerate(sched80c_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        row_cleaned = form.cleaned_data
-        if not row_cleaned.get('identification_no') and not row_cleaned.get('amount'):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'80c-{i + 1}',
-            'typeOfIdentifier': prior.get('typeOfIdentifier', ''),
-            'identificationNo': row_cleaned.get('identification_no') or '',
-            'amount': row_cleaned.get('amount') or 0,
-        })
-    d['schedule80C'] = rows
-
-    existing = d.get('pensionContribution80CCC', [])
-    rows = []
-    for i, form in enumerate(sched80ccc_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        row_cleaned = form.cleaned_data
-        if not row_cleaned.get('name_of_identifier') and not row_cleaned.get('amount'):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'80ccc-{i + 1}',
-            'typeOfIdentifier': prior.get('typeOfIdentifier', ''),
-            'nameOfIdentifier': row_cleaned.get('name_of_identifier') or '',
-            'amount': row_cleaned.get('amount') or 0,
-        })
-    d['pensionContribution80CCC'] = rows
-
-    d['s80CCD1'] = cleaned.get('s80CCD1') or 0
-    d['pranNumbers'] = [p.strip() for p in (cleaned.get('pran_numbers') or '').split(',') if p.strip()]
-    d['s80CCD1B'] = cleaned.get('s80CCD1B') or 0
-    d['s80CCD2'] = cleaned.get('s80CCD2') or 0
-    d['s80CCH'] = cleaned.get('s80CCH') or 0
-
-    # --- 80D: fixed 4-block structure; s80D stays a genuine user field (only
-    # needs to be <= the schedule's eligible amount, not an exact match).
-    prior_80d = d['schedule80D']
-    c = sched80d_cleaned
-    d['schedule80D'] = {
-        'selfFamilySeniorFlag': c.get('self_family_senior_flag') or '',
-        'selfFamily': {
-            'healthInsurancePremium': c.get('self_family_health_insurance_premium') or 0,
-            'insurers': prior_80d['selfFamily'].get('insurers', []),
-            'preventiveHealthCheckup': c.get('self_family_preventive_health_checkup') or 0,
-            'medicalExpenditure': c.get('self_family_medical_expenditure') or 0,
-        },
-        'selfFamilySenior': {
-            'healthInsurancePremium': c.get('self_family_senior_health_insurance_premium') or 0,
-            'insurers': prior_80d['selfFamilySenior'].get('insurers', []),
-            'preventiveHealthCheckup': c.get('self_family_senior_preventive_health_checkup') or 0,
-            'medicalExpenditure': c.get('self_family_senior_medical_expenditure') or 0,
-        },
-        'parentsSeniorFlag': c.get('parents_senior_flag') or '',
-        'parents': {
-            'healthInsurancePremium': c.get('parents_health_insurance_premium') or 0,
-            'insurers': prior_80d['parents'].get('insurers', []),
-            'preventiveHealthCheckup': c.get('parents_preventive_health_checkup') or 0,
-            'medicalExpenditure': c.get('parents_medical_expenditure') or 0,
-        },
-        'parentsSenior': {
-            'healthInsurancePremium': c.get('parents_senior_health_insurance_premium') or 0,
-            'insurers': prior_80d['parentsSenior'].get('insurers', []),
-            'preventiveHealthCheckup': c.get('parents_senior_preventive_health_checkup') or 0,
-            'medicalExpenditure': c.get('parents_senior_medical_expenditure') or 0,
-        },
-    }
-    d['s80D'] = cleaned.get('s80D') or 0
-
-    # --- 80DD / 80U: s80DD/s80U are derived from the schedule's `amount`
-    # because tier-2 rules require an exact match (A-201-300).
-    def apply_disability(section_cleaned, prior_sched):
-        return {
-            'natureOfDisability': section_cleaned.get('nature_of_disability') or '',
-            'typeOfDisability': section_cleaned.get('type_of_disability') or '',
-            'amount': section_cleaned.get('amount') or 0,
-            'dependentType': prior_sched.get('dependentType', ''),
-            'dependentPan': prior_sched.get('dependentPan', ''),
-            'dependentAadhaar': prior_sched.get('dependentAadhaar', ''),
-            'form10IAFiled': section_cleaned.get('form10IAFiled') or False,
-            'form10IAAckNo': section_cleaned.get('form10IAAckNo') or '',
-            'udidNo': prior_sched.get('udidNo', ''),
-        }
-
-    d['schedule80DD'] = apply_disability(disability_80dd_cleaned, d['schedule80DD'])
-    d['schedule80U'] = apply_disability(disability_80u_cleaned, d['schedule80U'])
-
-    d['s80DDB'] = cleaned.get('s80DDB') or 0
-    d['s80DDBUsrType'] = cleaned.get('s80DDBUsrType') or ''
-    d['s80DDBDisease'] = cleaned.get('s80DDBDisease') or ''
-
-    # --- Loan-interest schedules (80E / 80EE / 80EEA / 80EEB): s80E/s80EE/
-    # s80EEA/s80EEB are derived from the schedule total for the same reason
-    # as 80C/80CCC above.
-    def apply_loan_formset(formset, existing_rows, prefix):
-        loan_rows = []
-        for i, form in enumerate(formset):
-            if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-                continue
-            row_cleaned = form.cleaned_data
-            if not row_cleaned.get('lender_name') and not row_cleaned.get('loan_account_no') and not row_cleaned.get('interest'):
-                continue
-            prior = existing_rows[i] if i < len(existing_rows) else {}
-            loan_rows.append({
-                'id': prior.get('id') or f'{prefix}-{i + 1}',
-                'loanTakenFrom': prior.get('loanTakenFrom', ''),
-                'lenderName': row_cleaned.get('lender_name') or '',
-                'loanAccountNo': row_cleaned.get('loan_account_no') or '',
-                'dateOfLoan': row_cleaned['date_of_loan'].isoformat() if row_cleaned.get('date_of_loan') else '',
-                'totalLoanAmount': prior.get('totalLoanAmount', 0),
-                'loanOutstandingAmount': prior.get('loanOutstandingAmount', 0),
-                'interest': row_cleaned.get('interest') or 0,
-                'vehicleRegNo': prior.get('vehicleRegNo'),
-            })
-        return loan_rows
-
-    d['schedule80E'] = apply_loan_formset(sched80e_fs, d.get('schedule80E', []), '80e')
-    d['schedule80EE'] = apply_loan_formset(sched80ee_fs, d.get('schedule80EE', []), '80ee')
-    d['schedule80EEA'] = apply_loan_formset(sched80eea_fs, d.get('schedule80EEA', []), '80eea')
-    d['schedule80EEB'] = apply_loan_formset(sched80eeb_fs, d.get('schedule80EEB', []), '80eeb')
-    d['stampDutyValue80EEA'] = cleaned.get('stampDutyValue80EEA') or 0
-
-    # --- 80G: one combined formset with a block selector standing in for the
-    # 4 separate CBDT tables (Don100Percent / Don50PercentNoApprReqd / ...).
-    new_sched80g = {model_key: [] for model_key in SCHEDULE_80G_BLOCK_MODEL_KEY.values()}
-    for i, form in enumerate(sched80g_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        row_cleaned = form.cleaned_data
-        if not any([
-            row_cleaned.get('donee_name'), row_cleaned.get('pan'),
-            row_cleaned.get('donation_cash'), row_cleaned.get('donation_other_mode'),
-        ]):
-            continue
-        block = row_cleaned.get('block') or 'A'
-        model_key = SCHEDULE_80G_BLOCK_MODEL_KEY.get(block, 'don100Percent')
-        ifsc = (row_cleaned.get('ifsc') or '').strip().upper()
-        new_sched80g[model_key].append({
-            'id': f'80g-{i + 1}',
-            'name': row_cleaned.get('donee_name') or '',
-            'pan': (row_cleaned.get('pan') or '').upper(),
-            'arnNo': '',
-            'address': blank_address(),
-            'donationCash': row_cleaned.get('donation_cash') or 0,
-            'donationOtherMode': row_cleaned.get('donation_other_mode') or 0,
-            'transactionRefNo': row_cleaned.get('transaction_ref_no') or '',
-            'ifsc': ifsc,
-        })
-    d['schedule80G'] = new_sched80g
-    d['s80G'] = cleaned.get('s80G') or 0
-
-    existing = d.get('schedule80GGA', [])
-    rows = []
-    for i, form in enumerate(sched80gga_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        row_cleaned = form.cleaned_data
-        if not any([row_cleaned.get('donee_name'), row_cleaned.get('donation_cash'), row_cleaned.get('donation_other_mode')]):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'gga-{i + 1}',
-            'relevantClause': prior.get('relevantClause', ''),
-            'name': row_cleaned.get('donee_name') or '',
-            'pan': (row_cleaned.get('pan') or '').upper(),
-            'address': prior.get('address') or blank_address(),
-            'donationCash': row_cleaned.get('donation_cash') or 0,
-            'donationOtherMode': row_cleaned.get('donation_other_mode') or 0,
-        })
-    d['schedule80GGA'] = rows
-    d['s80GGA'] = cleaned.get('s80GGA') or 0
-
-    existing = d.get('schedule80GGC', [])
-    rows = []
-    for i, form in enumerate(sched80ggc_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        row_cleaned = form.cleaned_data
-        if not any([row_cleaned.get('political_party_name'), row_cleaned.get('donation_cash'), row_cleaned.get('donation_other_mode')]):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        ifsc = (row_cleaned.get('ifsc') or '').strip().upper()
-        rows.append({
-            'id': prior.get('id') or f'ggc-{i + 1}',
-            'donationDate': row_cleaned['donation_date'].isoformat() if row_cleaned.get('donation_date') else '',
-            'politicalPartyName': row_cleaned.get('political_party_name') or '',
-            'politicalPartyPan': (row_cleaned.get('political_party_pan') or '').upper(),
-            'donationCash': row_cleaned.get('donation_cash') or 0,
-            'donationOtherMode': row_cleaned.get('donation_other_mode') or 0,
-            'transactionRefNo': row_cleaned.get('transaction_ref_no') or '',
-            'ifsc': ifsc,
-        })
-    d['schedule80GGC'] = rows
-    d['s80GGC'] = cleaned.get('s80GGC') or 0
-
-    d['s80GG'] = cleaned.get('s80GG') or 0
-    d['form10BAFiled'] = cleaned.get('form10BAFiled') or False
-    d['form10BAAckNo'] = cleaned.get('form10BAAckNo') or ''
-
-    d['s80TTA'] = cleaned.get('s80TTA') or 0
-    d['s80TTB'] = cleaned.get('s80TTB') or 0
-
-    derive_schedule_totals(model)
-
-
 def total_deductions(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
     report = None
+    computed = None
 
     if request.method == 'POST':
         deductions_form = DeductionsForm(request.POST)
@@ -1182,42 +709,45 @@ def total_deductions(request, return_id):
             and sched80gga_fs.is_valid()
             and sched80ggc_fs.is_valid()
         )
-        conflict_message = _check_version_conflict(request, tax_return)
-        if conflict_message:
-            if _is_ajax(request):
-                return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
-        elif forms_valid:
-            before = copy.deepcopy(model)
-            _apply_deductions_forms(
-                model, deductions_form.cleaned_data, sched80c_fs, sched80ccc_fs, sched80d_form.cleaned_data,
-                disability_80dd_form.cleaned_data, disability_80u_form.cleaned_data,
-                sched80e_fs, sched80ee_fs, sched80eea_fs, sched80eeb_fs,
-                sched80g_fs, sched80gga_fs, sched80ggc_fs,
-            )
-            _log_field_changes(tax_return, before, model, request.user if request.user.is_authenticated else None)
-            tax_return.bump_version()
-
+        if forms_valid:
+            payload = {
+                'deductions': deductions_form.cleaned_data,
+                'schedule_80c': [f.cleaned_data for f in sched80c_fs],
+                'schedule_80ccc': [f.cleaned_data for f in sched80ccc_fs],
+                'schedule_80d': sched80d_form.cleaned_data,
+                'disability_80dd': disability_80dd_form.cleaned_data,
+                'disability_80u': disability_80u_form.cleaned_data,
+                'schedule_80e': [f.cleaned_data for f in sched80e_fs],
+                'schedule_80ee': [f.cleaned_data for f in sched80ee_fs],
+                'schedule_80eea': [f.cleaned_data for f in sched80eea_fs],
+                'schedule_80eeb': [f.cleaned_data for f in sched80eeb_fs],
+                'schedule_80g': [f.cleaned_data for f in sched80g_fs],
+                'schedule_80gga': [f.cleaned_data for f in sched80gga_fs],
+                'schedule_80ggc': [f.cleaned_data for f in sched80ggc_fs],
+            }
             action = request.POST.get('action', 'save')
-            if action == 'confirm':
-                report = validate(model, tier=2, screen='TOTAL_DEDUCTIONS')
-                if report.errors:
-                    _set_screen_status(tax_return, 'TOTAL_DEDUCTIONS', 'HAS_ERRORS')
+            try:
+                if action == 'confirm':
+                    result = return_service.confirm_screen(
+                        return_id, request.user, 'TOTAL_DEDUCTIONS', payload, _expected_version(request),
+                    )
+                    report = result['report']
+                    if result['confirmed']:
+                        return redirect('itr:tax_paid', return_id=return_id)
                 else:
-                    _set_screen_status(tax_return, 'TOTAL_DEDUCTIONS', 'CONFIRMED')
-                tax_return.save()
-                AuditLogEntry.objects.create(
-                    tax_return=tax_return, actor=request.user if request.user.is_authenticated else None,
-                    kind=AuditLogEntry.KIND_VALIDATION_RUN,
-                    payload={'screen': 'TOTAL_DEDUCTIONS', 'errors': [e.ruleId for e in report.errors]},
-                )
-                if not report.errors:
-                    return redirect('itr:tax_paid', return_id=return_id)
-            else:
-                _set_screen_status(tax_return, 'TOTAL_DEDUCTIONS', 'IN_PROGRESS')
-                tax_return.save()
+                    result = return_service.save_screen(
+                        return_id, request.user, 'TOTAL_DEDUCTIONS', payload, _expected_version(request),
+                    )
+                    if _is_ajax(request):
+                        return _ajax_saved_response(result)
+                    return redirect('itr:total_deductions', return_id=return_id)
+                _sync_tax_return(tax_return, result)
+                model = tax_return.data
+                computed = result['computed']
+            except VersionConflictError as e:
+                conflict_message = e.message
                 if _is_ajax(request):
-                    return _ajax_saved_response(tax_return)
-                return redirect('itr:total_deductions', return_id=return_id)
+                    return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
     else:
         initial = _deductions_initial(model)
         deductions_form = DeductionsForm(initial=initial['deductions'])
@@ -1234,7 +764,8 @@ def total_deductions(request, return_id):
         sched80gga_fs = Schedule80GGAFormSet(initial=initial['sched80gga'], prefix='s80gga')
         sched80ggc_fs = Schedule80GGCFormSet(initial=initial['sched80ggc'], prefix='s80ggc')
 
-    computed = compute(model)
+    if computed is None:
+        computed = return_service.get_computation(return_id, request.user)
 
     return render(request, 'itr/total_deductions.html', {
         'ay': model['ay'],
@@ -1330,116 +861,12 @@ def _tax_paid_initial(model):
     }
 
 
-def _apply_tax_paid_forms(model, tds1_fs, tds2_fs, tds3_fs, tcs_fs, challan_fs):
-    tp = model['taxPaid']
-
-    existing = tp.get('tds1', [])
-    rows = []
-    for i, form in enumerate(tds1_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        c = form.cleaned_data
-        if not c.get('tan') and not c.get('deductor_name') and not c.get('income_chargeable_salary') and not c.get('total_tax_deducted'):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'tds1-{i + 1}',
-            'tan': c.get('tan') or '',
-            'deductorName': c.get('deductor_name') or '',
-            'incomeChargeableSalary': c.get('income_chargeable_salary') or 0,
-            'totalTaxDeducted': c.get('total_tax_deducted') or 0,
-        })
-    tp['tds1'] = rows
-
-    existing = tp.get('tds2', [])
-    rows = []
-    for i, form in enumerate(tds2_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        c = form.cleaned_data
-        if not any([c.get('tan_or_pan'), c.get('deductor_name'), c.get('gross_receipt'), c.get('tax_deducted')]):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'tds2-{i + 1}',
-            'tanOrPan': c.get('tan_or_pan') or '',
-            'deductorName': c.get('deductor_name') or '',
-            'grossReceipt': c.get('gross_receipt') or 0,
-            'deductedYear': c.get('deducted_year') or '',
-            'taxDeducted': c.get('tax_deducted') or 0,
-            'tdsClaimedThisYear': c.get('tds_claimed_this_year') or 0,
-            'tdsSection': c.get('tds_section') or '',
-            'headOfIncome': c.get('head_of_income') or '',
-        })
-    tp['tds2'] = rows
-
-    existing = tp.get('tds3', [])
-    rows = []
-    for i, form in enumerate(tds3_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        c = form.cleaned_data
-        if not any([c.get('pan_of_tenant'), c.get('name_of_tenant'), c.get('gross_receipt'), c.get('tax_deducted')]):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'tds3-{i + 1}',
-            'panOfTenant': c.get('pan_of_tenant') or '',
-            'aadhaarOfTenant': c.get('aadhaar_of_tenant') or '',
-            'nameOfTenant': c.get('name_of_tenant') or '',
-            'grossReceipt': c.get('gross_receipt') or 0,
-            'deductedYear': c.get('deducted_year') or '',
-            'taxDeducted': c.get('tax_deducted') or 0,
-            'tdsClaimedThisYear': c.get('tds_claimed_this_year') or 0,
-            'tdsSection': c.get('tds_section') or '',
-            'headOfIncome': c.get('head_of_income') or '',
-        })
-    tp['tds3'] = rows
-
-    existing = tp.get('tcs', [])
-    rows = []
-    for i, form in enumerate(tcs_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        c = form.cleaned_data
-        if not any([c.get('tan'), c.get('collector_name'), c.get('tax_collected')]):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'tcs-{i + 1}',
-            'tan': c.get('tan') or '',
-            'collectorName': c.get('collector_name') or '',
-            'taxCollected': c.get('tax_collected') or 0,
-            'collectedYear': c.get('collected_year') or '',
-            'totalTcs': prior.get('totalTcs', 0),
-            'tcsClaimedThisYear': c.get('tcs_claimed_this_year') or 0,
-        })
-    tp['tcs'] = rows
-
-    existing = tp.get('challans', [])
-    rows = []
-    for i, form in enumerate(challan_fs):
-        if not form.cleaned_data or form.cleaned_data.get('DELETE'):
-            continue
-        c = form.cleaned_data
-        if not any([c.get('bsr_code'), c.get('challan_serial_no'), c.get('amount')]):
-            continue
-        prior = existing[i] if i < len(existing) else {}
-        rows.append({
-            'id': prior.get('id') or f'chl-{i + 1}',
-            'bsrCode': c.get('bsr_code') or '',
-            'dateOfDeposit': c['date_of_deposit'].isoformat() if c.get('date_of_deposit') else '',
-            'challanSerialNo': c.get('challan_serial_no') or '',
-            'amount': c.get('amount') or 0,
-        })
-    tp['challans'] = rows
-
-
 def tax_paid(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
     report = None
+    computed = None
 
     if request.method == 'POST':
         tds1_fs = Tds1FormSet(request.POST, prefix='tds1')
@@ -1455,37 +882,37 @@ def tax_paid(request, return_id):
             and tcs_fs.is_valid()
             and challan_fs.is_valid()
         )
-        conflict_message = _check_version_conflict(request, tax_return)
-        if conflict_message:
-            if _is_ajax(request):
-                return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
-        elif forms_valid:
-            before = copy.deepcopy(model)
-            _apply_tax_paid_forms(model, tds1_fs, tds2_fs, tds3_fs, tcs_fs, challan_fs)
-            _log_field_changes(tax_return, before, model, request.user if request.user.is_authenticated else None)
-            tax_return.bump_version()
-
+        if forms_valid:
+            payload = {
+                'tds1': [f.cleaned_data for f in tds1_fs],
+                'tds2': [f.cleaned_data for f in tds2_fs],
+                'tds3': [f.cleaned_data for f in tds3_fs],
+                'tcs': [f.cleaned_data for f in tcs_fs],
+                'challans': [f.cleaned_data for f in challan_fs],
+            }
             action = request.POST.get('action', 'save')
-            if action == 'confirm':
-                report = validate(model, tier=2, screen='TAX_PAID')
-                if report.errors:
-                    _set_screen_status(tax_return, 'TAX_PAID', 'HAS_ERRORS')
+            try:
+                if action == 'confirm':
+                    result = return_service.confirm_screen(
+                        return_id, request.user, 'TAX_PAID', payload, _expected_version(request),
+                    )
+                    report = result['report']
+                    if result['confirmed']:
+                        return redirect('itr:tax_liability', return_id=return_id)
                 else:
-                    _set_screen_status(tax_return, 'TAX_PAID', 'CONFIRMED')
-                tax_return.save()
-                AuditLogEntry.objects.create(
-                    tax_return=tax_return, actor=request.user if request.user.is_authenticated else None,
-                    kind=AuditLogEntry.KIND_VALIDATION_RUN,
-                    payload={'screen': 'TAX_PAID', 'errors': [e.ruleId for e in report.errors]},
-                )
-                if not report.errors:
-                    return redirect('itr:tax_liability', return_id=return_id)
-            else:
-                _set_screen_status(tax_return, 'TAX_PAID', 'IN_PROGRESS')
-                tax_return.save()
+                    result = return_service.save_screen(
+                        return_id, request.user, 'TAX_PAID', payload, _expected_version(request),
+                    )
+                    if _is_ajax(request):
+                        return _ajax_saved_response(result)
+                    return redirect('itr:tax_paid', return_id=return_id)
+                _sync_tax_return(tax_return, result)
+                model = tax_return.data
+                computed = result['computed']
+            except VersionConflictError as e:
+                conflict_message = e.message
                 if _is_ajax(request):
-                    return _ajax_saved_response(tax_return)
-                return redirect('itr:tax_paid', return_id=return_id)
+                    return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
     else:
         initial = _tax_paid_initial(model)
         tds1_fs = Tds1FormSet(initial=initial['tds1'], prefix='tds1')
@@ -1494,7 +921,8 @@ def tax_paid(request, return_id):
         tcs_fs = TcsFormSet(initial=initial['tcs'], prefix='tcs')
         challan_fs = ChallanFormSet(initial=initial['challans'], prefix='challan')
 
-    computed = compute(model)
+    if computed is None:
+        computed = return_service.get_computation(return_id, request.user)
 
     return render(request, 'itr/tax_paid.html', {
         'ay': model['ay'],
@@ -1526,61 +954,45 @@ def _tax_liability_initial(model):
     }
 
 
-def _apply_tax_liability_form(model, cleaned):
-    tl = model['taxLiability']
-    tl['relief89'] = cleaned.get('relief89') or 0
-    tl['form10EFiled'] = cleaned.get('form10EFiled') or False
-    tl['form10EAckNo'] = cleaned.get('form10EAckNo') or ''
-    # Left blank -> None, meaning "use the engine's computed default" (see
-    # forms.py's TaxLiabilityForm docstring); an explicit value overrides it.
-    tl['interest234AOverride'] = cleaned.get('interest234AOverride')
-    tl['interest234BOverride'] = cleaned.get('interest234BOverride')
-    tl['fee234FOverride'] = cleaned.get('fee234FOverride')
-
-
 def tax_liability(request, return_id):
     tax_return = _get_return(request, return_id)
     model = tax_return.data
     conflict_message = None
     report = None
+    computed = None
 
     if request.method == 'POST':
         form = TaxLiabilityForm(request.POST)
-        conflict_message = _check_version_conflict(request, tax_return)
-        if conflict_message:
-            if _is_ajax(request):
-                return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
-        elif form.is_valid():
-            before = copy.deepcopy(model)
-            _apply_tax_liability_form(model, form.cleaned_data)
-            _log_field_changes(tax_return, before, model, request.user if request.user.is_authenticated else None)
-            tax_return.bump_version()
-
+        if form.is_valid():
+            payload = {'tax_liability': form.cleaned_data}
             action = request.POST.get('action', 'save')
-            if action == 'confirm':
-                report = validate(model, tier=2, screen='TAX_LIABILITY')
-                if report.errors:
-                    _set_screen_status(tax_return, 'TAX_LIABILITY', 'HAS_ERRORS')
+            try:
+                if action == 'confirm':
+                    result = return_service.confirm_screen(
+                        return_id, request.user, 'TAX_LIABILITY', payload, _expected_version(request),
+                    )
+                    report = result['report']
+                    if result['confirmed']:
+                        return redirect('itr:tax_summary', return_id=return_id)
                 else:
-                    _set_screen_status(tax_return, 'TAX_LIABILITY', 'CONFIRMED')
-                tax_return.save()
-                AuditLogEntry.objects.create(
-                    tax_return=tax_return, actor=request.user if request.user.is_authenticated else None,
-                    kind=AuditLogEntry.KIND_VALIDATION_RUN,
-                    payload={'screen': 'TAX_LIABILITY', 'errors': [e.ruleId for e in report.errors]},
-                )
-                if not report.errors:
-                    return redirect('itr:tax_summary', return_id=return_id)
-            else:
-                _set_screen_status(tax_return, 'TAX_LIABILITY', 'IN_PROGRESS')
-                tax_return.save()
+                    result = return_service.save_screen(
+                        return_id, request.user, 'TAX_LIABILITY', payload, _expected_version(request),
+                    )
+                    if _is_ajax(request):
+                        return _ajax_saved_response(result)
+                    return redirect('itr:tax_liability', return_id=return_id)
+                _sync_tax_return(tax_return, result)
+                model = tax_return.data
+                computed = result['computed']
+            except VersionConflictError as e:
+                conflict_message = e.message
                 if _is_ajax(request):
-                    return _ajax_saved_response(tax_return)
-                return redirect('itr:tax_liability', return_id=return_id)
+                    return JsonResponse({'saved': False, 'conflict': conflict_message}, status=409)
     else:
         form = TaxLiabilityForm(initial=_tax_liability_initial(model))
 
-    computed = compute(model)
+    if computed is None:
+        computed = return_service.get_computation(return_id, request.user)
 
     return render(request, 'itr/tax_liability.html', {
         'ay': model['ay'],
@@ -1600,22 +1012,25 @@ def tax_liability(request, return_id):
 
 
 def tax_summary(request, return_id):
-    tax_return = _get_return(request, return_id)
+    # Ownership/404 gate before any service call -- TaxReturn.DoesNotExist
+    # from the service layer isn't auto-converted to a 404 response the way
+    # get_object_or_404 is, so this check has to happen here regardless of
+    # whether the object itself is used below (it isn't; _screen_view does
+    # its own fetch for that).
+    _get_return(request, return_id)
 
     if request.method == 'POST' and request.POST.get('action') == 'proceed':
-        _set_screen_status(tax_return, 'TAX_SUMMARY', 'CONFIRMED')
-        tax_return.save()
+        return_service.confirm_tax_summary(return_id, request.user)
         return redirect('itr:validation', return_id=return_id)
 
     if request.method == 'POST' and request.POST.get('action') == 'export_pdf':
-        computed = compute(tax_return.data)
-        pdf_bytes = render_computation_sheet_pdf(tax_return, computed)
+        pdf_bytes = return_service.export_computation_sheet_pdf(return_id, request.user)
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="ITR1_computation_sheet_{return_id}.pdf"'
         return response
 
     def extra(tr):
-        computed = compute(tr.data)
+        computed = return_service.get_computation(tr.pk, tr.owner)
         deduction_lines = [
             {'section': section, 'amount': info['eligible'], 'amount_display': format_indian(info['eligible'])}
             for section, info in computed['deductions']['bySection'].items()
@@ -1664,68 +1079,39 @@ def validation(request, return_id):
 
     if request.method == 'POST':
         action = request.POST.get('action')
-        actor = request.user if request.user.is_authenticated else None
 
         if action == 'acknowledge':
-            acks = model.setdefault('advisoryAcknowledgements', {})
-            acknowledged_ids = []
-            for key in request.POST:
-                if key.startswith('ack_') and request.POST.get(key) == 'on':
-                    rule_id = key[len('ack_'):]
-                    acks[rule_id] = {
-                        'by': actor.username if actor else 'demo',
-                        'at': timezone.now().isoformat(),
-                    }
-                    acknowledged_ids.append(rule_id)
-            tax_return.save()
-            AuditLogEntry.objects.create(
-                tax_return=tax_return, actor=actor, kind=AuditLogEntry.KIND_ADVISORY_ACK,
-                payload={'acknowledgedRuleIds': acknowledged_ids},
-            )
+            acknowledged_ids = [
+                key[len('ack_'):] for key in request.POST
+                if key.startswith('ack_') and request.POST.get(key) == 'on'
+            ]
+            return_service.acknowledge_advisories(return_id, request.user, acknowledged_ids)
             return redirect('itr:validation', return_id=return_id)
 
         if action == 'save_verification':
             verification_form = VerificationForm(request.POST)
             if verification_form.is_valid():
-                before = copy.deepcopy(model)
-                v = model['verification']
-                v['assesseeVerName'] = verification_form.cleaned_data['assessee_ver_name']
-                v['fatherName'] = verification_form.cleaned_data['father_name']
-                v['assesseeVerPan'] = verification_form.cleaned_data['assessee_ver_pan'].upper()
-                v['capacity'] = verification_form.cleaned_data['capacity']
-                v['place'] = verification_form.cleaned_data['place']
-                _log_field_changes(tax_return, before, model, actor)
-                tax_return.bump_version()
-                tax_return.save()
+                return_service.save_verification(return_id, request.user, verification_form.cleaned_data)
                 return redirect('itr:validation', return_id=return_id)
             # else fall through to the bottom render with the bound (invalid) form
 
         if action == 'download':
-            computed = compute(model)
             try:
-                result = generate_json_or_throw(model, {'computed': computed})
+                result = return_service.generate_return_json(return_id, request.user)
             except GenerationBlockedError:
                 return redirect('itr:validation', return_id=return_id)
-            AuditLogEntry.objects.create(
-                tax_return=tax_return, actor=actor, kind=AuditLogEntry.KIND_JSON_GENERATION,
-                payload={'filename': result.filename, 'sha256': result.sha256},
-                new_value=model,
-            )
-            response = HttpResponse(result.json, content_type='application/json')
-            response['Content-Disposition'] = f'attachment; filename="{result.filename}"'
+            response = HttpResponse(result['json'], content_type='application/json')
+            response['Content-Disposition'] = f'attachment; filename="{result["filename"]}"'
             return response
 
         if action == 'preview':
-            computed = compute(model)
-            pdf_bytes = render_return_preview_pdf(tax_return, computed)
+            pdf_bytes = return_service.export_return_preview_pdf(return_id, request.user)
             response = HttpResponse(pdf_bytes, content_type='application/pdf')
             response['Content-Disposition'] = f'inline; filename="ITR1_preview_{return_id}.pdf"'
             return response
 
         if action == 'export_report':
-            computed = compute(model)
-            result = generate_json(model, {'computed': computed})
-            pdf_bytes = render_validation_report_pdf(tax_return, result.validation)
+            pdf_bytes = return_service.export_validation_report_pdf(return_id, request.user)
             response = HttpResponse(pdf_bytes, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="ITR1_validation_report_{return_id}.pdf"'
             return response
@@ -1740,14 +1126,9 @@ def validation(request, return_id):
             'place': v['place'],
         })
 
-    computed = compute(model)
-    result = generate_json(model, {'computed': computed})
-    report = result.validation
-
-    # §3.2 deep links: "Go to field" scrolls to, highlights and focuses the
-    # offending section (see base.html's deep-link JS and itr/deep_links.py).
-    for finding in report.errors + report.advisories + report.documentAdvisories:
-        finding.goto_url = resolve_deep_link(return_id, finding.deepLink)
+    validation_result = return_service.run_validation(return_id, request.user)
+    report = validation_result['report']
+    computed = return_service.get_computation(return_id, request.user)
 
     return render(request, 'itr/validation.html', {
         'ay': model['ay'],
@@ -1756,9 +1137,8 @@ def validation(request, return_id):
         'return_id': return_id,
         'computed': computed,
         'report': report,
-        'generation': result,
         'verification_form': verification_form,
-        'pending_ack_ids': set(result.pendingAcknowledgements),
-        'downloadable': result.downloadable and not result.pendingAcknowledgements,
+        'pending_ack_ids': set(validation_result['pending_acknowledgements']),
+        'downloadable': validation_result['downloadable'],
         **_chrome_context(tax_return, computed),
     })

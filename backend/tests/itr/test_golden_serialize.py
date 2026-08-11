@@ -14,7 +14,7 @@ from itr.serialize.json_schema_validator import validate_against_schema
 from itr.serialize.schema_order import order_by_schema
 from itr.serialize.serializer import serialize
 
-from tests.test_golden import golden_model
+from tests.itr.test_golden import golden_model
 
 
 def test_golden_serializes_and_orders_cleanly():

@@ -59,6 +59,11 @@ class Finding:
     values: dict
     source: str
     aliasOf: str | None = None
+    # Not set by validate() itself -- resolve_deep_link(deepLink) fills this
+    # in downstream (itr.services.return_service.run_validation) once a
+    # return_id is known. Declared here (rather than a dynamic attribute) so
+    # every consumer can read it directly instead of a defensive getattr.
+    goto_url: str | None = None
 
 
 @dataclass

@@ -51,7 +51,7 @@ class TaxReturn(models.Model):
 
     def bump_version(self):
         """Call once per edit, after the submitted `version` has been checked
-        against the current one (see itr.views._check_version_conflict),
+        against the current one (see itr.services.return_service._ensure_version),
         so a concurrent editor's next save is detected as stale. This is a
         Python-level check-then-increment, not an atomic DB-level compare-
         and-swap -- adequate for this module's demo-scale single-process

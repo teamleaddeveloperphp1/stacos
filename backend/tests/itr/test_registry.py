@@ -5,7 +5,11 @@ def test_registry_counts_match_cbdt_spec():
     counts = registry_counts()
     # A-107 (IFSC/RBI-database verification) was removed -- this product no
     # longer verifies IFSCs against an external directory.
-    assert counts == {'A': 338, 'B': 9, 'D': 1, 'total': 348}
+    # B-1 (Aadhaar-PAN linkage) was removed -- it asserted
+    # personalInfo.aadhaarLinkedToPan, a field with no input anywhere in the
+    # UI, so it fired as an unconditional advisory for every return rather
+    # than reflecting an actual checked fact.
+    assert counts == {'A': 338, 'B': 8, 'D': 1, 'total': 347}
 
 
 def test_registry_self_check_has_no_problems():

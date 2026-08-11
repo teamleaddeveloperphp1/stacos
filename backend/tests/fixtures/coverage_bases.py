@@ -15,7 +15,7 @@ this and a dict is the most direct analogue of the TS object literal.
 """
 
 from itr.model_blank import blank_return_model
-from tests.test_golden import golden_model
+from tests.itr.test_golden import golden_model
 
 # ---------------------------------------------------------------------------
 # bases.ts

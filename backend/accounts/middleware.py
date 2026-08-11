@@ -16,6 +16,15 @@ ALWAYS_ALLOWED_PREFIXES = (
     '/media/',
     '/healthz/',
     '/admin/',
+    # /api/ is exempt from this middleware entirely, not just the login
+    # check: on an unauthenticated hit this middleware does an HTML redirect
+    # to /accounts/login/, which is meaningless to a JSON client. DRF's own
+    # authentication/permission classes (SessionAuthentication +
+    # IsAuthenticated, see config/settings.py REST_FRAMEWORK) return a
+    # proper 401/403 JSON body instead. This also means MFA enforcement
+    # (below, for the template UI) does not currently apply to the API --
+    # recorded as known follow-up work, not silently dropped.
+    '/api/',
 )
 
 # Reachable once logged in but before MFA enrollment/verification is done --

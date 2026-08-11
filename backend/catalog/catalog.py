@@ -8,7 +8,8 @@ class Service:
     description: str
     icon: str
     available: bool
-    url_name: str | None = None  # reversed only when available
+    url_name: str | None = None  # reversed only when available (web dashboard link)
+    api_base: str | None = None  # /api/v1/<service>/ once that service has an API; None otherwise
 
 
 # Single source of truth -- the dashboard, the coming-soon page, and any
@@ -22,6 +23,7 @@ CATALOG = [
         icon='📄',
         available=True,
         url_name='itr:member_list',
+        api_base='/api/v1/itr/',
     ),
     Service(
         slug='tds',
