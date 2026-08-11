@@ -33,7 +33,7 @@ urlpatterns = [
     # reverse("captcha-image", ...) unnamespaced, which breaks if these
     # patterns are included underneath an app_name.
     path('accounts/captcha/', include('captcha.urls')),
-    path('', include('services.urls')),
-    path('', RedirectView.as_view(pattern_name='services:dashboard', permanent=False)),
+    path('', include('catalog.urls')),
+    path('', RedirectView.as_view(pattern_name='catalog:dashboard', permanent=False)),
     path('', include('itr.urls')),
 ]

@@ -9,7 +9,7 @@
 <p>We're building this. It isn't available yet.</p>
 
 <div class="actions">
-  <a class="btn btn-primary" href="{% url 'services:dashboard' %}">Back to dashboard</a>
+  <a class="btn btn-primary" href="{% url 'catalog:dashboard' %}">Back to dashboard</a>
   {% if user.is_authenticated %}
     <form method="post">
       {% csrf_token %}

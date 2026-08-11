@@ -14,12 +14,12 @@
   <main class="dashboard">
     <header class="dashboard-header">
       <div>
-        <p class="breadcrumb"><a href="{% url 'services:dashboard' %}">Dashboard</a> &rsaquo; Returns</p>
+        <p class="breadcrumb"><a href="{% url 'catalog:dashboard' %}">Dashboard</a> &rsaquo; Returns</p>
         <h1>ITR-1 &middot; AY 2026-27</h1>
         <p class="dashboard-sub">Prepare, validate and generate a CBDT-ready ITR-1 JSON.</p>
       </div>
       <div class="flex-row">
-        <a class="btn" href="{% url 'services:dashboard' %}">&larr; Back</a>
+        <a class="btn" href="{% url 'catalog:dashboard' %}">&larr; Back</a>
         <a class="btn btn-primary" href="{% url 'itr:return_create' %}">+ Start a new return</a>
       </div>
     </header>

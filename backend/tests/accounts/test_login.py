@@ -15,7 +15,7 @@ class LoginTests(TestCase):
 
     def test_correct_password_no_mfa_lands_on_dashboard(self):
         response = self.client.post(reverse('accounts:login'), {'email': 'u@example.com', 'password': 'correct-horse-battery'})
-        self.assertRedirects(response, reverse('services:dashboard'))
+        self.assertRedirects(response, reverse('catalog:dashboard'))
         self.assertTrue('_auth_user_id' in self.client.session)
 
     def test_correct_password_with_mfa_lands_on_verify_not_dashboard(self):

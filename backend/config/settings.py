@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'axes',
     'itr',
     'accounts',
-    'services',
+    'catalog',
 ]
 
 MIDDLEWARE = [
@@ -170,11 +170,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ---------------------------------------------------------------------------
-# accounts / services (auth, MFA, dashboard)
+# accounts / catalog (auth, MFA, dashboard)
 # ---------------------------------------------------------------------------
 
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'services:dashboard'
+LOGIN_REDIRECT_URL = 'catalog:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
 TERMS_URL = os.environ.get('TERMS_URL', 'https://www.stacos.com/terms.php')

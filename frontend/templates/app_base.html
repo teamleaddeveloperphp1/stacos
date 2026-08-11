@@ -14,7 +14,7 @@
   {% block topbar %}
   <div class="app-topbar">
     <div class="row">
-      <a class="brand" href="{% if user.is_authenticated %}{% url 'services:dashboard' %}{% else %}{% url 'accounts:login' %}{% endif %}">
+      <a class="brand" href="{% if user.is_authenticated %}{% url 'catalog:dashboard' %}{% else %}{% url 'accounts:login' %}{% endif %}">
         <span class="brand-mark"></span>
         <span>STACOS<span class="text-blue">.ai</span></span>
       </a>

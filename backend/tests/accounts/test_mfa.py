@@ -34,7 +34,7 @@ class MfaSetupTests(TestCase):
         code = self._totp_for_device(device).now()
 
         response = self.client.post(reverse('accounts:mfa_setup'), {'code': code})
-        self.assertRedirects(response, reverse('services:dashboard'))
+        self.assertRedirects(response, reverse('catalog:dashboard'))
 
         device.refresh_from_db()
         self.assertTrue(device.confirmed)
@@ -51,7 +51,7 @@ class MfaSetupTests(TestCase):
         code = self._totp_for_device(device).now()
         self.client.post(reverse('accounts:mfa_setup'), {'code': code})
 
-        dashboard = self.client.get(reverse('services:dashboard'))
+        dashboard = self.client.get(reverse('catalog:dashboard'))
         self.assertEqual(dashboard.status_code, 200)
 
     def test_invalid_code_does_not_confirm(self):
@@ -96,7 +96,7 @@ class MfaLoginIntegrationTests(TestCase):
         self._login_to_pending()
         code = pyotp.TOTP(base32_secret(self.device)).now()
         response = self.client.post(reverse('accounts:mfa_verify'), {'code': code})
-        self.assertRedirects(response, reverse('services:dashboard'))
+        self.assertRedirects(response, reverse('catalog:dashboard'))
         self.assertIn('_auth_user_id', self.client.session)
 
     def test_verify_marks_session_otp_verified_not_just_authenticated(self):
@@ -107,7 +107,7 @@ class MfaLoginIntegrationTests(TestCase):
         self._login_to_pending()
         code = pyotp.TOTP(base32_secret(self.device)).now()
         self.client.post(reverse('accounts:mfa_verify'), {'code': code})
-        response = self.client.get(reverse('services:dashboard'))
+        response = self.client.get(reverse('catalog:dashboard'))
         self.assertEqual(response.status_code, 200)
 
     def test_five_failed_verify_attempts_clears_pending_and_bounces_to_login(self):
