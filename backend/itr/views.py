@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from itr.engine.compute import compute
+from itr.engine.derive import derive_schedule_totals
 from itr.engine.validate import validate
 from itr.serialize.generate import GenerationBlockedError, generate_json, generate_json_or_throw
 from itr.forms import (
@@ -951,7 +952,6 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
             'amount': row_cleaned.get('amount') or 0,
         })
     d['schedule80C'] = rows
-    d['s80C'] = sum(r['amount'] for r in rows)
 
     existing = d.get('pensionContribution80CCC', [])
     rows = []
@@ -969,7 +969,6 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
             'amount': row_cleaned.get('amount') or 0,
         })
     d['pensionContribution80CCC'] = rows
-    d['s80CCC'] = sum(r['amount'] for r in rows)
 
     d['s80CCD1'] = cleaned.get('s80CCD1') or 0
     d['pranNumbers'] = [p.strip() for p in (cleaned.get('pran_numbers') or '').split(',') if p.strip()]
@@ -1027,9 +1026,7 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
         }
 
     d['schedule80DD'] = apply_disability(disability_80dd_cleaned, d['schedule80DD'])
-    d['s80DD'] = d['schedule80DD']['amount']
     d['schedule80U'] = apply_disability(disability_80u_cleaned, d['schedule80U'])
-    d['s80U'] = d['schedule80U']['amount']
 
     d['s80DDB'] = cleaned.get('s80DDB') or 0
     d['s80DDBUsrType'] = cleaned.get('s80DDBUsrType') or ''
@@ -1061,13 +1058,9 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
         return loan_rows
 
     d['schedule80E'] = apply_loan_formset(sched80e_fs, d.get('schedule80E', []), '80e')
-    d['s80E'] = sum(r['interest'] for r in d['schedule80E'])
     d['schedule80EE'] = apply_loan_formset(sched80ee_fs, d.get('schedule80EE', []), '80ee')
-    d['s80EE'] = sum(r['interest'] for r in d['schedule80EE'])
     d['schedule80EEA'] = apply_loan_formset(sched80eea_fs, d.get('schedule80EEA', []), '80eea')
-    d['s80EEA'] = sum(r['interest'] for r in d['schedule80EEA'])
     d['schedule80EEB'] = apply_loan_formset(sched80eeb_fs, d.get('schedule80EEB', []), '80eeb')
-    d['s80EEB'] = sum(r['interest'] for r in d['schedule80EEB'])
     d['stampDutyValue80EEA'] = cleaned.get('stampDutyValue80EEA') or 0
 
     # --- 80G: one combined formset with a block selector standing in for the
@@ -1149,6 +1142,8 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
 
     d['s80TTA'] = cleaned.get('s80TTA') or 0
     d['s80TTB'] = cleaned.get('s80TTB') or 0
+
+    derive_schedule_totals(model)
 
 
 def total_deductions(request, return_id):

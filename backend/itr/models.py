@@ -23,7 +23,6 @@ class TaxReturn(models.Model):
     ay = models.CharField(max_length=7, default='2026-27')
     model_version = models.IntegerField(default=1)
     data = models.JSONField(default=_default_return_data)
-    screen_status = models.JSONField(default=dict, blank=True)
 
     # Optimistic locking: incremented on every save so a concurrent edit can
     # be detected (compare the version you loaded against the current one
