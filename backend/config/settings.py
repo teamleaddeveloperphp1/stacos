@@ -56,27 +56,57 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_totp',
     'captcha',
     'axes',
-    'itr',
-    'accounts',
-    'services',
+    'rest_framework',
+    'corsheaders',
+    'apps.itr',
+    'infra.accounts',
+    'infra.catalog',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django_otp.middleware.OTPMiddleware',
-    'accounts.middleware.AccessControlMiddleware',
+    'infra.accounts.middleware.AccessControlMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
 ]
 
+# A mobile client (and any other cross-origin caller) is the whole point of
+# having an API. Never CORS_ALLOW_ALL_ORIGINS -- an explicit, env-driven
+# allowlist only, same pattern as ALLOWED_HOSTS above.
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('DJANGO_CORS_ALLOWED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+
+REST_FRAMEWORK = {
+    # Session auth (the same cookie the template UI already uses) is enough
+    # for now -- a mobile client authenticating through this same session
+    # mechanism works transparently. Token/JWT auth is a deliberate
+    # non-goal here; add it only when a client that can't hold a cookie
+    # jar actually shows up.
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'EXCEPTION_HANDLER': 'apps.itr.api.v1.exceptions.exception_handler',
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
+
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
-    'accounts.backends.EmailBackend',
+    'infra.accounts.backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -85,18 +115,17 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Templates live in ../frontend/templates/ (see the STATICFILES_DIRS
+        # Templates live in ../web/templates/ (see the STATICFILES_DIRS
         # comment below) rather than itr/templates/ -- APP_DIRS stays True
         # in case a future app wants its own app-local templates, but every
         # screen template today resolves via this DIRS entry.
-        'DIRS': [BASE_DIR.parent / 'frontend' / 'templates'],
+        'DIRS': [BASE_DIR.parent / 'web' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'itr.context_processors.i18n',
             ],
         },
     },
@@ -155,14 +184,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 #
-# The project is organised as sibling `backend/` (this Django project) and
-# `frontend/` (static assets) folders. Django still server-renders every
-# screen -- this is a folder-organisation split, not a decoupled API/SPA --
-# so STATICFILES_DIRS just points the staticfiles app at frontend/static/
-# instead of relying on itr/'s own (now-removed) app-static directory.
+# The project is organised as sibling `backend/` (this Django project),
+# `web/` (server-rendered template UI static assets) and (once the mobile
+# app exists) `mobile/` folders. Django still server-renders every screen --
+# this is a folder-organisation split, not a decoupled API/SPA -- so
+# STATICFILES_DIRS just points the staticfiles app at web/static/ instead
+# of relying on itr/'s own (now-removed) app-static directory.
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR.parent / 'frontend' / 'static']
+STATICFILES_DIRS = [BASE_DIR.parent / 'web' / 'static']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -171,11 +201,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ---------------------------------------------------------------------------
-# accounts / services (auth, MFA, dashboard)
+# accounts / catalog (auth, MFA, dashboard)
 # ---------------------------------------------------------------------------
 
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'services:dashboard'
+LOGIN_REDIRECT_URL = 'catalog:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
 TERMS_URL = os.environ.get('TERMS_URL', 'https://www.stacos.com/terms.php')
@@ -195,7 +225,7 @@ OTP_TOTP_THROTTLE_FACTOR = 0
 # django-simple-captcha
 CAPTCHA_LETTER_ROTATION = None
 CAPTCHA_NOISE_FUNCTIONS = ('captcha.helpers.noise_dots',)
-CAPTCHA_CHALLENGE_FUNCT = 'accounts.captcha.challenge'
+CAPTCHA_CHALLENGE_FUNCT = 'infra.accounts.captcha.challenge'
 CAPTCHA_TIMEOUT = 5  # minutes
 CAPTCHA_LENGTH = 6
 

@@ -1,0 +1,947 @@
+/* ============================================
+   STACOS.ai -- app.css
+   Component styling for the actual app UI (returns sidebar, fieldset
+   cards, chips, tables, auth pages, services dashboard), built against
+   tokens.css. Marketing-only sections (hero, countdown, waitlist,
+   etymology, stats, cards/card-tile, foot-grid, cta-strip, fade-up) are
+   intentionally NOT here -- they match nothing in this app.
+   ============================================ */
+
+/* ---------- Reset ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--off-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.005em;
+}
+img, svg { max-width: 100%; }
+a { color: var(--blue); text-decoration: none; transition: color .2s ease; }
+a:hover { color: var(--blue-dark); }
+button { font-family: inherit; }
+
+/* ---------- Typography ----------
+   Deliberately NOT the marketing clamp(2.4rem, 5.6vw, 4.8rem) hero h1 --
+   that renders a page title like "Personal Information" as a ~77px
+   headline. App headings are sized for a dense UI and explicitly
+   overridden per-context below (.itr-header h1, .auth-card h1, etc). */
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0 0 12px;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+h1 { font-size: 1.7rem; }
+h2 { font-size: 1.15rem; margin-top: 20px; }
+h3 { font-size: 1rem; }
+p { margin: 0 0 12px; color: var(--grey-700); }
+strong { font-weight: 600; color: var(--ink); }
+.mono { font-family: var(--font-mono); font-feature-settings: 'tnum' on, 'lnum' on; }
+.text-blue { color: var(--blue); }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blue);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--blue); }
+.eyebrow.muted { color: var(--grey-500); }
+.eyebrow.muted::before { background: var(--grey-300); }
+
+.flex-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--white);
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .2s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.btn-dark { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
+/* Buttons keep the exact same colour on hover -- these re-assert each
+   variant's own text colour purely to cancel out the global `a:hover`
+   rule above (an <a class="btn ...">, e.g. "+ Start a new return", would
+   otherwise pick up a:hover's colour and visibly shift on hover). No other
+   property changes on hover. */
+.btn:hover { color: var(--ink); }
+.btn-primary:hover { color: var(--white); }
+.btn-dark:hover { color: var(--white); }
+.btn-ghost:hover { color: var(--ink); }
+.btn-sm { padding: 7px 12px; font-size: 13px; }
+
+button, input[type="submit"] {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--blue);
+  background: var(--blue);
+  color: var(--white);
+  cursor: pointer;
+}
+button[value="save"] { background: var(--white); color: var(--blue); }
+
+/* ---------- App shell / top bar (accounts, services, settings) ---------- */
+.app-topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--rule);
+  padding: 16px 0;
+}
+.app-topbar .row {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.app-topbar .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 1.05rem; color: var(--ink); }
+.brand-mark { width: 24px; height: 24px; border-radius: var(--radius); background: var(--ink); position: relative; display: inline-flex; flex-shrink: 0; }
+.brand-mark::after { content: ''; position: absolute; top: 5px; right: 5px; width: 4px; height: 4px; background: var(--blue-bright); border-radius: 50%; }
+
+.app-user-menu { position: relative; }
+.app-user-menu > button {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.app-user-menu .avatar {
+  width: 22px; height: 22px; border-radius: 50%; background: var(--blue-light);
+  color: var(--blue); font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.app-user-menu .menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 180px;
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  z-index: 50;
+}
+.app-user-menu.open .menu { display: block; }
+.app-user-menu .menu a, .app-user-menu .menu button {
+  display: block; width: 100%; text-align: left; padding: 10px 14px;
+  font-size: 13.5px; color: var(--ink); background: none; border: 0; cursor: pointer;
+}
+.app-user-menu .menu a:hover { background: var(--off-white); }
+
+.app-main { max-width: 720px; margin: 0 auto; padding: 40px 28px 64px; }
+.app-main.wide { max-width: 1000px; }
+.app-main.full-bleed { max-width: none; padding: 0; }
+
+/* ============================================================
+   Sign-in / pre-launch split page (see the /design spec this was built
+   against). Two surfaces, one accent -- --signin-* tokens from tokens.css,
+   not the app-wide --blue/--ink/--grey-* palette. body.signin-page and the
+   empty {% block topbar %} on login.html remove the global app-topbar so
+   these two panels can each own a true min-height:100vh with no page
+   scroll at 1440x900.
+   ============================================================ */
+body.signin-page { margin: 0; }
+
+.signin-split { display: flex; min-height: 100vh; }
+
+.signin-panel {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 64px 72px;
+}
+.signin-panel-ink { flex-grow: 1.15; background: var(--signin-ink-900); color: var(--signin-ink-100); }
+.signin-panel-paper { flex-grow: 1.25; background: var(--signin-paper); }
+
+.signin-slot-top { flex: 0 0 auto; }
+.signin-slot-middle { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
+.signin-slot-bottom { flex: 0 0 auto; }
+.signin-panel-paper .signin-slot-middle { align-items: center; }
+
+/* -- wordmark (ink panel) -- */
+.signin-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--signin-ink-050);
+}
+.signin-panel-ink .brand-mark { background: var(--signin-ink-050); }
+.signin-panel-ink .brand-mark::after { background: var(--signin-accent); }
+
+/* -- hero copy (ink panel) -- */
+.eyebrow-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--signin-ink-100);
+  margin-bottom: 16px;
+}
+.signin-headline {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 44px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--signin-ink-050);
+  max-width: 15ch;
+  margin: 0 0 20px;
+}
+.signin-body { font-size: 16px; line-height: 1.65; color: var(--signin-ink-100); max-width: 46ch; margin: 0 0 24px; }
+.signin-waitlist {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--signin-ink-050);
+}
+
+/* -- hero copy entrance animation -- */
+@keyframes signin-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.signin-panel-ink .eyebrow-mono,
+.signin-panel-ink .signin-headline,
+.signin-panel-ink .signin-body,
+.signin-panel-ink .signin-waitlist {
+  opacity: 0;
+  animation: signin-fade-up .6s ease-out forwards;
+}
+.signin-panel-ink .eyebrow-mono { animation-delay: .05s; }
+.signin-panel-ink .signin-headline { animation-delay: .15s; }
+.signin-panel-ink .signin-body { animation-delay: .3s; }
+.signin-panel-ink .signin-waitlist { animation-delay: .45s; }
+
+.signin-rule { border: none; border-top: 1px solid var(--signin-ink-700); margin: 0 0 16px; }
+.trust-line-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--signin-ink-100);
+}
+.signin-panel-paper .trust-line-mono { color: var(--signin-slate-500); }
+
+/* -- sign in / create account switch, centred below the submit button -- */
+.signin-switch {
+  margin: 36px 0 0;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--signin-slate-500);
+}
+.signin-switch a { color: var(--signin-accent); }
+.signin-switch strong { font-weight: 500; }
+
+/* -- the form card itself -- */
+.signin-form-wrap { width: 100%; max-width: 400px; margin: 0 auto; }
+.signin-card-title {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--signin-slate-900);
+  margin: 0 0 4px;
+}
+.signin-card-subtitle { font-size: 14px; color: var(--signin-slate-500); margin: 0 0 32px; }
+
+.signin-field { margin-bottom: 16px; }
+.signin-field label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--signin-slate-900);
+  margin-bottom: 6px;
+  text-transform: none;
+}
+/* No required-asterisk here -- both fields are required, so marking them
+   would be pure noise (see the design spec's defect #4). */
+.signin-field label::after { content: none !important; }
+
+.signin-field input[type="email"],
+.signin-field input[type="password"],
+.signin-field input[type="text"] {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  background: var(--signin-paper-tint);
+  border: 1px solid var(--signin-slate-300);
+  border-radius: var(--signin-radius);
+  color: var(--signin-slate-900);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.signin-field input:focus {
+  outline: none;
+  border-color: var(--signin-accent);
+  box-shadow: 0 0 0 3px rgba(18, 70, 127, 0.15);
+}
+.signin-field input[aria-invalid="true"] { border-color: var(--signin-danger); }
+.signin-error { margin-top: 6px; font-size: 13px; color: var(--signin-danger); }
+
+.signin-form-wrap .password-field input { padding-right: 44px; }
+.signin-form-wrap .password-toggle { right: 12px; color: var(--signin-slate-500); }
+.signin-form-wrap .password-toggle:hover,
+.signin-form-wrap .password-toggle:focus-visible {
+  color: var(--signin-accent);
+  background-color: rgba(18, 70, 127, 0.1);
+}
+
+.signin-row-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+.signin-row-split a { color: var(--signin-accent); font-weight: 400; }
+.signin-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--signin-slate-900);
+  font-weight: 500;
+  text-transform: none;
+  margin: 0;
+}
+.signin-remember input[type="checkbox"] { width: auto; margin: 0; }
+
+.signin-submit {
+  display: block;
+  width: 100%;
+  height: 44px;
+  background: var(--signin-accent);
+  color: var(--signin-paper);
+  border: none;
+  border-radius: var(--signin-radius);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.signin-submit:disabled { background: var(--signin-slate-300); cursor: default; }
+
+/* -- error summary, scoped to the paper palette -- */
+.signin-form-wrap .error-summary {
+  border-color: var(--signin-danger);
+  background: #FBEAE8;
+  margin-bottom: 20px;
+}
+.signin-form-wrap .error-summary h4,
+.signin-form-wrap .error-summary a { color: var(--signin-danger); }
+
+/* -- focus-visible everywhere on this page, not just inputs -- */
+.signin-split a:focus-visible,
+.signin-split button:focus-visible,
+.signin-split input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(18, 70, 127, 0.35);
+  border-radius: var(--signin-radius);
+}
+
+/* -- captcha row (signup only) -- */
+.signin-captcha-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.signin-captcha-row img.captcha { border-radius: var(--signin-radius); border: 1px solid var(--signin-slate-300); }
+.signin-captcha-row input[type="text"] { flex: 1; min-width: 120px; }
+.signin-captcha-refresh {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--signin-slate-300);
+  border-radius: var(--signin-radius);
+  background: var(--signin-paper-tint);
+  color: var(--signin-slate-500);
+  cursor: pointer;
+  font-size: 16px;
+}
+
+@media (max-width: 1024px) {
+  .signin-split { flex-direction: column; min-height: auto; }
+  .signin-panel { padding: 40px 24px; min-height: auto; }
+  .signin-headline { font-size: 32px; }
+  .eyebrow-mono { font-size: 11px; }
+  .signin-form-wrap { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signin-split *, .signin-split *::before, .signin-split *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ---------- Centered auth card (login/signup/recovery/MFA) ---------- */
+.auth-card-wrap { display: flex; justify-content: center; padding: 48px 20px 64px; }
+.auth-card { width: 100%; max-width: 460px; }
+.auth-card h1 { font-size: 1.5rem; }
+.auth-card .eyebrow { margin-bottom: 10px; }
+.auth-card .actions { justify-content: center; }
+.auth-links { margin-top: 20px; text-align: center; font-size: 14px; color: var(--grey-700); }
+
+.helper-text { font-size: 12.5px; color: var(--grey-500); margin-top: 4px; }
+
+/* Password show/hide toggle -- wrapper + button injected by app_base.html's
+   script around every input[type=password] on the page. */
+.password-field { position: relative; }
+.password-field input { padding-right: 40px; }
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--grey-500);
+  line-height: 1;
+  transition: color .15s ease, background-color .15s ease;
+}
+.password-toggle svg { display: block; }
+.password-toggle:hover, .password-toggle:focus-visible {
+  color: var(--blue);
+  background-color: var(--blue-light);
+}
+
+/* Captcha answer input: visually uppercases whatever the user types, since
+   the compare is already case-insensitive -- shows that directly instead
+   of a "letters aren't case-sensitive" caption. */
+#id_captcha_1 { text-transform: uppercase; }
+.status-msg { border-radius: 6px; padding: 10px 14px; margin: 0 0 16px; font-size: 13.5px; }
+.status-msg.success { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-border); }
+.status-msg.error { background: var(--err-bg); color: var(--err); border: 1px solid var(--err-border); }
+.status-msg.info { background: var(--neutral-bg); color: var(--grey-700); border: 1px solid var(--neutral-border); }
+
+.error-summary {
+  border: 1px solid var(--err-border);
+  background: var(--err-bg);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.error-summary h4 { color: var(--err); margin: 0 0 8px; font-size: 14px; }
+.error-summary ul { margin: 0; padding: 0; list-style: none; }
+.error-summary a { color: var(--err); font-weight: 500; }
+.error-summary a:hover { text-decoration: underline; }
+
+/* ---------- App shell (returns flow) ---------- */
+.app-shell { display: flex; min-height: 100vh; align-items: stretch; background: var(--off-white); }
+
+nav.itr-menu {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-right: 1px solid var(--rule);
+  padding: 24px 20px;
+  /* Stays in place while the (often much taller) form content on the right
+     scrolls -- the sidebar's own steps/status/language switcher stay
+     reachable the whole time instead of scrolling away. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  overflow-y: auto;
+}
+.dashboard-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--grey-500);
+  padding: 6px 10px;
+  margin-bottom: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  transition: all .2s ease;
+}
+.dashboard-link:hover { color: var(--blue); border-color: var(--blue); background: var(--blue-light); }
+nav.itr-menu h2 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grey-500);
+  margin: 0 0 16px;
+}
+.menu-taxpayer { font-size: 12.5px; color: var(--grey-500); margin: -8px 0 14px; }
+nav.itr-menu ul { list-style: none; margin: 0; padding: 0; }
+nav.itr-menu li { margin-bottom: 2px; }
+nav.itr-menu a {
+  text-decoration: none;
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  border-left: 2px solid transparent;
+  transition: background .15s ease;
+}
+nav.itr-menu a > span:first-child { min-width: 0; overflow-wrap: break-word; }
+nav.itr-menu a > .chip { flex-shrink: 0; }
+nav.itr-menu a:hover { background: var(--grey-50); color: var(--ink); }
+nav.itr-menu a.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-light); }
+
+/* ---------- Chips / status pills ---------- */
+.chip {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--neutral-border);
+  color: var(--neutral);
+  background: var(--neutral-bg);
+  white-space: nowrap;
+}
+.chip-not_started { color: var(--neutral); background: var(--neutral-bg); border-color: var(--neutral-border); }
+.chip-in_progress { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-border); }
+.chip-confirmed, .chip-available { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-border); }
+.chip-has_errors { color: var(--err); background: var(--err-bg); border-color: var(--err-border); }
+.chip-coming_soon { color: var(--neutral); background: var(--neutral-bg); border-color: var(--neutral-border); }
+
+/* ---------- Breadcrumb ---------- */
+.breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--grey-500);
+  margin: 0 0 12px;
+}
+.breadcrumb a { color: var(--grey-500); }
+.breadcrumb a:hover { color: var(--blue); }
+.breadcrumb .sep { color: var(--rule); margin: 0 6px; }
+
+/* ---------- Regime badge / ticker / header ---------- */
+.regime-badge {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--grey-50);
+  color: var(--grey-500);
+}
+.regime-new { color: var(--blue); background: var(--blue-light); border-color: #c7dbf3; }
+.regime-old { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-border); }
+.header-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.header-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 13px; color: var(--grey-500); }
+.ticker { font-weight: 600; }
+.ticker-refund { color: var(--ok); }
+.ticker-payable { color: var(--warn); }
+.ticker-neutral { color: var(--grey-500); }
+
+main.itr-main { flex-grow: 1; min-width: 0; padding: 28px 32px 48px; max-width: 980px; }
+header.itr-header { border-bottom: 1px solid var(--rule); padding-bottom: 14px; margin-bottom: 20px; }
+header.itr-header h1 { font-size: 1.7rem; }
+.itr-footer {
+  border-top: 1px solid var(--rule);
+  margin-top: 32px;
+  padding-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--grey-500);
+}
+.autosave-status { font-size: 13px; color: var(--grey-500); align-self: center; margin-left: 8px; }
+.autosave-status.autosave-conflict { color: var(--err); font-weight: 600; }
+.deep-link-target { outline: 3px solid var(--blue); outline-offset: 2px; transition: outline-color 4s ease; }
+
+/* ---------- Fieldset/legend cards (forms) ---------- */
+fieldset {
+  margin: 0 0 var(--card-gap);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 20px var(--card-pad) var(--card-pad);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+legend {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  padding: 0 6px;
+  color: var(--ink);
+}
+.field { margin-bottom: 14px; }
+.row { display: flex; gap: var(--field-gap); flex-wrap: wrap; }
+.row .field { flex: 1; min-width: 200px; }
+
+/* §4.3: sentence-case sans labels, not marketing's mono-uppercase
+   .form-group treatment -- at 40+ fields per screen, uppercase mono is
+   unreadable at this density. */
+.field label, label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--grey-700);
+  margin-bottom: 5px;
+}
+
+/* Required-field marker -- Django already renders the HTML `required`
+   attribute on every mandatory field's widget, so this is CSS-only: no
+   template changes needed, and it can't drift out of sync with the forms. */
+.field label:has(+ input:required)::after,
+.field label:has(+ select:required)::after,
+.field label:has(+ textarea:required)::after {
+  content: ' *';
+  color: var(--err);
+}
+/* Same marker, for constraints that aren't a single input's `required`
+   attribute (e.g. "at least one bank account", a formset/section-level
+   rule) -- used directly in a legend/label rather than inferred via :has(). */
+.required-marker { color: var(--err); }
+
+input[type="text"], input[type="email"], input[type="password"], input[type="number"],
+input[type="date"], input[type="tel"], select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 61, 165, 0.12);
+}
+input[type="checkbox"] { width: auto; margin-right: 6px; vertical-align: middle; }
+.field small, small { color: var(--grey-500); font-size: 12.5px; }
+.errorlist { color: var(--err); font-size: 12.5px; margin: 4px 0 0; padding: 0; list-style: none; }
+.formset-row { border-top: 1px dashed var(--rule); padding-top: 12px; margin-top: 12px; }
+.formset-row:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+.actions { margin-top: 20px; display: flex; gap: 10px; }
+
+/* ---------- Summary / computed-value boxes ---------- */
+.gti-summary, .td-summary, .tp-summary, .summary-box, .tds-summary, .direct-tax-summary {
+  background: var(--blue-light);
+  border: 1px solid #c7dbf3;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 1.05rem;
+}
+.gti-summary strong, .td-summary strong, .tp-summary strong, .summary-box strong,
+.tds-summary strong, .direct-tax-summary strong { font-size: 1.25rem; }
+.summary-box-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.summary-box-row > * { flex: 1; min-width: 260px; }
+.summary-box-title { display: block; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--blue); margin-bottom: 6px; }
+
+.regime-note {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13.5px;
+  color: var(--warn);
+}
+
+/* §regime-conditional fields: only the fields for the selected regime are
+   shown at all -- not shown-with-a-zero-note -- so the screen reads
+   unambiguously as "your regime's form", not a generic superset. */
+.regime-hidden { display: none; }
+.regime-inapplicable-note {
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: var(--card-gap);
+  font-size: 13.5px;
+  color: var(--grey-500);
+}
+
+.computed-line {
+  display: flex;
+  justify-content: space-between;
+  max-width: 480px;
+  padding: 5px 0;
+  border-bottom: 1px dotted var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+.computed-line .val { font-weight: 500; }
+.computed-line.total { font-weight: 700; border-bottom: none; border-top: 1px solid var(--grey-500); margin-top: 6px; padding-top: 8px; }
+.note { font-size: 13px; color: var(--grey-500); }
+
+/* ---------- Banners ---------- */
+.banner, .success-banner {
+  border: 1px solid var(--ok-border);
+  background: var(--ok-bg);
+  color: var(--ok);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 1.05rem;
+}
+.banner strong, .success-banner strong { font-size: 1.25rem; }
+.banner.payable { border-color: var(--warn-border); background: var(--warn-bg); color: var(--warn); }
+.banner.neutral { border-color: var(--rule); background: var(--grey-50); color: var(--grey-500); }
+
+/* ---------- Validation findings ---------- */
+.finding {
+  border-left: 3px solid var(--err);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: var(--err-bg);
+}
+.finding.advisory { border-color: var(--warn); background: var(--warn-bg); }
+.finding.document { border-color: var(--grey-500); background: var(--grey-50); }
+.finding label { display: block; font-size: inherit; font-weight: normal; color: inherit; margin: 0; }
+.finding em { font-style: italic; color: var(--grey-700); }
+
+/* §3.2 "Go to field" -- must read as an actionable button, not a stray text
+   link, since it's the primary way a preparer gets from a finding to the
+   offending field. */
+.finding a {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  background: var(--blue);
+  color: var(--white);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.finding a:hover, .finding a:focus { background: #002d80; text-decoration: none; }
+
+.rule-id { font-family: var(--font-mono); font-size: 12px; color: var(--grey-500); }
+.screen-group h3 { margin-bottom: 4px; }
+
+/* ---------- Trace drawer ---------- */
+.trace-drawer { margin-top: 10px; border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 12px; background: var(--grey-50); }
+.trace-drawer summary { cursor: pointer; font-size: 13px; color: var(--blue); font-weight: 500; }
+.trace-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.trace-table td { padding: 4px 8px; border-bottom: 1px dotted var(--rule); }
+.trace-table .trace-detail { color: var(--grey-500); font-size: 12.5px; }
+.trace-table .trace-amount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trace-table tr.trace-result td { font-weight: 700; border-top: 1px solid var(--grey-500); border-bottom: none; }
+
+/* ---------- Tables ---------- */
+table { border-collapse: collapse; width: 100%; max-width: 760px; background: var(--white); border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--grey-100); font-variant-numeric: tabular-nums; }
+th { background: var(--grey-50); font-family: var(--font-mono); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--grey-500); }
+tr:last-child td { border-bottom: none; }
+
+/* ---------- Dashboard / returns landing page ---------- */
+body.dashboard-body { background: var(--off-white); }
+.dashboard { max-width: 980px; margin: 0 auto; padding: 40px 24px 64px; }
+.dashboard-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+.dashboard-header > div { min-width: 0; }
+.dashboard-header h1 { margin: 4px 0; font-size: 1.6rem; }
+.dashboard-sub { margin: 0; color: var(--grey-500); font-size: 14.5px; overflow-wrap: break-word; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--card-gap); }
+
+.return-card { display: block; background: var(--white); border: 1px solid var(--rule); border-radius: 6px; padding: 18px 20px; text-decoration: none; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease; }
+.return-card:hover { border-color: var(--blue); box-shadow: var(--shadow-sm); color: var(--ink); }
+.return-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.return-card-name { font-weight: 600; font-size: 16px; min-width: 0; overflow-wrap: break-word; }
+.return-card-pan { margin-top: 4px; font-size: 13px; color: var(--grey-500); }
+.return-card-progress { margin: 14px 0; }
+.return-card-progress span { display: block; margin-top: 6px; font-size: 12.5px; color: var(--grey-500); }
+.progress-track { height: 6px; border-radius: 999px; background: var(--grey-100); overflow: hidden; }
+.progress-fill { height: 100%; background: var(--blue); border-radius: 999px; }
+.return-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 13px; }
+.return-card-updated { color: var(--grey-500); }
+
+.dashboard-empty { background: var(--white); border: 1px dashed var(--rule); border-radius: 6px; padding: 48px 24px; text-align: center; color: var(--grey-500); }
+.dashboard-empty h2 { color: var(--ink); }
+.dashboard-empty .btn { margin-top: 14px; }
+
+/* ---------- Members (Tax Filer) list ---------- */
+.members-card { background: var(--white); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow-sm); }
+.members-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px var(--card-pad); border-bottom: 1px solid var(--rule); }
+.members-card-header h1 { margin: 0 0 6px; font-size: 1.25rem; }
+.members-card-header .dashboard-sub { max-width: 560px; }
+
+.member-rows { padding: 0 var(--card-pad); }
+.member-row { display: flex; align-items: center; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.member-row:last-child { border-bottom: none; }
+
+.member-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-weight: 600;
+  font-size: 14px;
+}
+.member-avatar-1 { background: var(--blue); }
+.member-avatar-2 { background: var(--ok); }
+.member-avatar-3 { background: var(--blue-bright); }
+.member-avatar-4 { background: var(--warn); }
+.member-avatar-5 { background: var(--grey-500); }
+
+.member-info { flex: 1; min-width: 0; }
+.member-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.member-name { font-weight: 600; color: var(--ink); text-decoration: none; }
+.member-name:hover { color: var(--blue); }
+.member-continue-chip { text-decoration: none; }
+.member-pan { margin-top: 2px; font-size: 12.5px; color: var(--grey-500); font-family: var(--font-mono); }
+
+.member-menu { position: relative; }
+.member-menu summary {
+  list-style: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--grey-50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--grey-500);
+}
+.member-menu summary::-webkit-details-marker { display: none; }
+.member-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  min-width: 120px;
+  overflow: hidden;
+}
+.member-menu-panel a, .member-menu-panel button {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.member-menu-panel a:hover, .member-menu-panel button:hover { background: var(--grey-50); }
+.member-menu-panel button { color: var(--err); }
+
+.pagination { display: flex; align-items: center; gap: 6px; padding: 16px var(--card-pad); }
+.page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.page-link:hover { border-color: var(--blue); color: var(--blue); }
+.page-link.page-active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+/* ---------- Services dashboard ---------- */
+.service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--card-gap); }
+.service-card { display: block; background: var(--white); border: 1px solid var(--rule); border-radius: 8px; padding: 22px 22px 20px; text-decoration: none; color: var(--ink); transition: border-color .15s ease, box-shadow .15s ease; }
+.service-card:hover { border-color: var(--blue); box-shadow: var(--shadow-sm); color: var(--ink); }
+.service-card .icon { font-size: 22px; margin-bottom: 12px; }
+.service-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.service-card p { margin: 0 0 14px; font-size: 13.5px; color: var(--grey-700); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .app-shell { flex-direction: column; }
+  nav.itr-menu {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+    position: static;
+    height: auto;
+    overflow-y: visible;
+  }
+  main.itr-main { padding: 20px; max-width: none; }
+  .service-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .service-grid { grid-template-columns: 1fr; }
+  header.itr-header h1, .dashboard-header h1 { font-size: 1.4rem; }
+}

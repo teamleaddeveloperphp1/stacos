@@ -1,0 +1,76 @@
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Service:
+    slug: str
+    name: str
+    description: str
+    icon: str
+    available: bool
+    url_name: str | None = None  # reversed only when available (web dashboard link)
+    api_base: str | None = None  # /api/v1/<service>/ once that service has an API; None otherwise
+
+
+# Single source of truth -- the dashboard, the coming-soon page, and any
+# future launch all read from this list. Adding a service later means
+# editing one entry here, nothing else.
+CATALOG = [
+    Service(
+        slug='itr',
+        name='ITR',
+        description='Prepare, validate and file ITR-1 returns.',
+        icon='📄',
+        available=True,
+        url_name='itr:member_list',
+        api_base='/api/v1/itr/',
+    ),
+    Service(
+        slug='tds',
+        name='TDS',
+        description='TDS return preparation and filing.',
+        icon='🧾',
+        available=False,
+    ),
+    Service(
+        slug='esic',
+        name='ESIC Compliance',
+        description='Employee State Insurance compliance filings.',
+        icon='🏥',
+        available=False,
+    ),
+    Service(
+        slug='epf',
+        name='EPF Compliance',
+        description='Employee Provident Fund compliance filings.',
+        icon='🏦',
+        available=False,
+    ),
+    Service(
+        slug='gst',
+        name='GST Compliance',
+        description='GST return preparation and filing.',
+        icon='🧮',
+        available=False,
+    ),
+    Service(
+        slug='cma',
+        name='Credit Monitoring Arrangement',
+        description='CMA data preparation for bank credit reviews.',
+        icon='📊',
+        available=False,
+    ),
+    Service(
+        slug='project-financing',
+        name='Project Financing',
+        description='Project finance documentation and workflows.',
+        icon='🏗️',
+        available=False,
+    ),
+]
+
+CATALOG_BY_SLUG = {s.slug: s for s in CATALOG}
+
+
+def get_service(slug):
+    return CATALOG_BY_SLUG.get(slug)

@@ -1,0 +1,153 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ITR-1{% endblock %} · stacos.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'shared/css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'shared/css/app.css' %}">
+</head>
+<body class="app-shell">
+  {% block sidebar %}
+  <nav class="itr-menu">
+    <a class="dashboard-link" href="{% url 'itr:member_list' %}">&larr; Back</a>
+    <h2>ITR-1 &middot; AY {{ ay|default:"2026-27" }}</h2>
+    {% if taxpayer_name %}
+      <div class="menu-taxpayer">{{ taxpayer_name }} &middot; {{ taxpayer_pan }}</div>
+    {% endif %}
+    <ul>
+      {% for item in menu_items %}
+      <li>
+        <a href="{{ item.url }}">
+          <span>{{ item.number }}. {{ item.label }}</span>
+          <span class="chip chip-{{ item.status }}">{{ item.status_label }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endblock %}
+  <main class="itr-main">
+    <p class="breadcrumb">Home &rsaquo; <a href="{% url 'itr:member_list' %}">Members</a> &rsaquo; ITR-1 AY {{ ay|default:"2026-27" }} &rsaquo; {% block breadcrumb_page %}{{ page_title }}{% endblock %}</p>
+
+    <header class="itr-header">
+      {% block header %}
+        <div class="header-row">
+          <h1>{% block page_title %}ITR-1{% endblock %}</h1>
+          {% if regime %}<span class="regime-badge regime-{{ regime|lower }}">{% if regime == 'OLD' %}OLD REGIME{% else %}NEW REGIME{% endif %}</span>{% endif %}
+        </div>
+        {% if taxpayer_name %}
+          <div class="header-meta">
+            <span>{{ taxpayer_name }}</span>
+            <span>PAN {{ taxpayer_pan }}</span>
+            <span>AY {{ ay|default:"2026-27" }}</span>
+            <span>{{ filing_section_label }}</span>
+            <span class="ticker ticker-{{ ticker_class }}">{{ ticker }}</span>
+          </div>
+        {% endif %}
+      {% endblock %}
+    </header>
+
+    {% block content %}{% endblock %}
+
+    {% if rule_set_version %}
+      <footer class="itr-footer">
+        Rule set {{ rule_set_version }} &middot; Schema {{ schema_version }} &middot; Constants {{ constants_version }}
+        &middot; Draft v{{ draft_version }}, saved {{ draft_updated_at|date:"H:i" }}
+      </footer>
+    {% endif %}
+  </main>
+  <script>
+    // §3.2 deep links: `/return/{id}/screen#anchor` scrolls to, highlights
+    // and focuses the target section so a validation finding's "Go to
+    // field" link actually lands the preparer on the right control.
+    document.addEventListener('DOMContentLoaded', function () {
+      if (!location.hash) return;
+      var target = document.getElementById(location.hash.slice(1));
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.add('deep-link-target');
+      var firstField = target.querySelector('input, select, textarea');
+      if (firstField) firstField.focus({ preventScroll: true });
+      setTimeout(function () { target.classList.remove('deep-link-target'); }, 4000);
+    });
+
+    // Addendum §1.3: warn before a regime switch discards the *displayed*
+    // Chapter VI-A totals -- entered values are never actually cleared (the
+    // engine just zeroes them in compute.py's output under the new regime),
+    // but the preparer should know why numbers are about to change to ₹0.
+    (function () {
+      var regimeSelect = document.getElementById('id_opt_out_of_new_regime');
+      if (!regimeSelect) return;
+      var lastValue = regimeSelect.value;
+      regimeSelect.addEventListener('change', function () {
+        // 'N' = staying on/switching to the new regime, where almost every
+        // Chapter VI-A section computes to ₹0 -- only that direction needs
+        // the warning; opting into the old regime discards nothing.
+        var proceed = regimeSelect.value !== 'N' || confirm(
+          'Switching to the new regime will not carry forward your Chapter VI-A entries (80C, 80D, HRA, etc.) ' +
+          'as deductions -- they are not deductible under this regime. Your entered values will be ' +
+          'preserved but shown as ₹0 in computation. Continue?'
+        );
+        if (proceed) {
+          lastValue = regimeSelect.value;
+        } else {
+          regimeSelect.value = lastValue;
+        }
+      });
+    })();
+
+    // §3.3 autosave: every 20 seconds and on every blur. Posts the current
+    // screen's form in the background (action=save, never "confirm") and
+    // shows a quiet "Draft saved HH:MM:SS" status instead of navigating away.
+    (function () {
+      // Scope to a real data-entry screen only (identified by the `_version`
+      // optimistic-locking field) -- Tax Summary/Validation's action forms
+      // (proceed/acknowledge/download) must never be autosaved over.
+      var form = null;
+      var candidates = document.querySelectorAll('main form');
+      for (var i = 0; i < candidates.length; i++) {
+        if (candidates[i].querySelector('input[name="_version"]')) { form = candidates[i]; break; }
+      }
+      if (!form) return;
+      var status = document.createElement('span');
+      status.className = 'autosave-status';
+      var actionsEl = form.querySelector('.actions');
+      (actionsEl || form).appendChild(status);
+
+      function autosave() {
+        var data = new FormData(form);
+        data.set('action', 'save');
+        fetch(form.action || location.href, {
+          method: 'POST',
+          body: data,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        }).then(function (resp) {
+          if (resp.status === 409) {
+            return resp.json().then(function (body) {
+              status.textContent = body.conflict || 'Edit conflict — reload this page.';
+              status.classList.add('autosave-conflict');
+            });
+          }
+          if (!resp.ok) { status.textContent = 'Autosave failed — Save manually.'; return; }
+          return resp.json().then(function (body) {
+            status.classList.remove('autosave-conflict');
+            status.textContent = 'Draft saved ' + body.savedAt;
+          });
+        }).catch(function () { status.textContent = 'Autosave failed — check your connection.'; });
+      }
+
+      setInterval(autosave, 20000);
+      var blurTimer = null;
+      form.addEventListener('blur', function (e) {
+        if (!(e.target.matches('input, select, textarea'))) return;
+        clearTimeout(blurTimer);
+        blurTimer = setTimeout(autosave, 400);
+      }, true);
+    })();
+  </script>
+</body>
+</html>

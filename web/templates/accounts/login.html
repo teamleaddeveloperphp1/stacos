@@ -1,0 +1,104 @@
+{% extends "app_base.html" %}
+
+{% block title %}Sign in · STACOS.ai{% endblock %}
+{% block main_class %} full-bleed{% endblock %}
+{% block body_class %}signin-page{% endblock %}
+{% block topbar %}{% endblock %}
+
+{% block content %}
+<div class="signin-split">
+
+  <div class="signin-panel signin-panel-ink">
+    <div class="signin-slot-top">
+      <a class="signin-wordmark" href="{% url 'accounts:login' %}">
+        <span class="brand-mark"></span>
+        <span>STACOS</span>
+      </a>
+    </div>
+
+    <div class="signin-slot-middle">
+      <div class="eyebrow-mono">COMING Q3 2026</div>
+      <h1 class="signin-headline">The operating system for tax, compliance and finance teams.</h1>
+      <p class="signin-body">Autonomous agents that file your returns, reconcile your books, and respond to notices — quietly, accurately, with a full audit trail.</p>
+      <span class="signin-waitlist">Join the waitlist <span aria-hidden="true">&rarr;</span></span>
+    </div>
+
+    <div class="signin-slot-bottom">
+      <hr class="signin-rule">
+      <div class="trust-line-mono">BUILT BY SKORYDOV &middot; 25 YEARS IN INDIAN TAX TECH</div>
+    </div>
+  </div>
+
+  <div class="signin-panel signin-panel-paper">
+    <div class="signin-slot-top"></div>
+
+    <div class="signin-slot-middle">
+      <div class="signin-form-wrap">
+        <h2 class="signin-card-title">Sign in</h2>
+        <p class="signin-card-subtitle">Access your filings and reconciliations.</p>
+
+        {% if form.non_field_errors %}
+          <div class="error-summary" role="alert">
+            <ul>
+              {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <form method="post" id="signin-form" novalidate>
+          {% csrf_token %}
+          {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+
+          <div class="signin-field">
+            <label for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <div class="signin-error" id="{{ form.email.id_for_label }}_error" role="alert">{{ form.email.errors|first }}</div>
+            {% endif %}
+          </div>
+
+          <div class="signin-field">
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password }}
+            {% if form.password.errors %}
+              <div class="signin-error" id="{{ form.password.id_for_label }}_error" role="alert">{{ form.password.errors|first }}</div>
+            {% endif %}
+          </div>
+
+          {% if form.captcha %}
+            <div class="signin-field">
+              <label for="id_captcha_1">Captcha</label>
+              {{ form.captcha }}
+              {% if form.captcha.errors %}
+                <div class="signin-error" role="alert">{{ form.captcha.errors|first }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <div class="signin-row-split">
+            <label class="signin-remember">{{ form.remember_me }} {{ form.remember_me.label }}</label>
+            <a href="{% url 'accounts:forgot_password' %}">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="signin-submit" id="signin-submit">Sign in</button>
+        </form>
+
+        <p class="signin-switch">No account? <a href="{% url 'accounts:signup' %}"><strong>Create one</strong></a></p>
+      </div>
+    </div>
+
+    <div class="signin-slot-bottom">
+      <div class="trust-line-mono">PROTECTED BY SSO AND 2FA</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.getElementById('signin-form').addEventListener('submit', function () {
+    var btn = document.getElementById('signin-submit');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+  });
+</script>
+{% endblock %}

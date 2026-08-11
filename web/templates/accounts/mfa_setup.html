@@ -1,0 +1,39 @@
+{% extends "app_base.html" %}
+
+{% block title %}Two-factor authentication · STACOS.ai{% endblock %}
+
+{% block content %}
+<div class="auth-card-wrap">
+  <div class="auth-card">
+    <h1>Two-factor authentication</h1>
+
+    {% if form.non_field_errors %}
+      <div class="error-summary"><ul>{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <p>1. Install Google Authenticator (or any TOTP app).</p>
+    <p>2. Scan this QR code.</p>
+    <p>3. Enter the 6-digit code below to finish.</p>
+
+    <p><img src="{{ qr_data_uri }}" alt="QR code for two-factor authentication setup" width="200" height="200"></p>
+
+    <p class="helper-text">Can't scan? Enter this code manually:</p>
+    <p class="mono" id="mfa-secret" style="user-select: all;">{{ secret }}</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        {{ form.code.label_tag }}
+        {{ form.code }}
+        {{ form.code.errors }}
+      </div>
+      <div class="actions">
+        <button type="submit">Verify and continue</button>
+        {% if skippable %}
+          <a class="btn" href="{% url 'catalog:dashboard' %}">Skip for now</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

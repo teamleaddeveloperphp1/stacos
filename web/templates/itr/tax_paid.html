@@ -1,0 +1,146 @@
+{% extends "itr/base.html" %}
+
+{% block title %}Tax Paid{% endblock %}
+{% block page_title %}Tax Paid{% endblock %}
+
+{% block content %}
+{% if conflict_message %}
+  <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+{% if report.errors %}
+  <div class="finding" role="alert">
+    <strong>{{ report.errors|length }} error(s) found — fix these before Confirm will succeed:</strong>
+    <ul>
+      {% for f in report.errors %}<li><span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }} <em>{{ f.remediation }}</em></li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+
+<div class="tp-summary">
+  Total Taxes Paid: <strong>&#8377;{{ total_taxes_paid_display }}</strong>
+</div>
+
+<div class="summary-box-row">
+  <div class="tds-summary">
+    <span class="summary-box-title">TDS / TCS deducted at source</span>
+    <small>TDS1: &#8377;{{ computed.taxesPaid.tds1 }} &middot;
+      TDS2: &#8377;{{ computed.taxesPaid.tds2 }} &middot;
+      TDS3: &#8377;{{ computed.taxesPaid.tds3 }} &middot;
+      TCS: &#8377;{{ computed.taxesPaid.tcs }}</small>
+  </div>
+  <div class="direct-tax-summary">
+    <span class="summary-box-title">Tax paid directly (ITR)</span>
+    <small>Advance tax: &#8377;{{ computed.taxesPaid.advanceTax }} &middot;
+      Self-assessment tax: &#8377;{{ computed.taxesPaid.selfAssessmentTax }}</small>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="_version" value="{{ draft_version }}">
+
+  <fieldset id="scheduleTDS1">
+    <legend>Schedule TDS1 &mdash; TDS from salary (Form 16)</legend>
+    {{ tds1_formset.management_form }}
+    {% for f in tds1_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ f.tan.label_tag }}{{ f.tan }}{{ f.tan.errors }}</div>
+        <div class="field">{{ f.deductor_name.label_tag }}{{ f.deductor_name }}{{ f.deductor_name.errors }}</div>
+        <div class="field">{{ f.income_chargeable_salary.label_tag }}{{ f.income_chargeable_salary }}{{ f.income_chargeable_salary.errors }}</div>
+        <div class="field">{{ f.total_tax_deducted.label_tag }}{{ f.total_tax_deducted }}{{ f.total_tax_deducted.errors }}</div>
+        {% if f.DELETE %}{% if forloop.counter0 < tds1_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
+      </div>
+    {% endfor %}
+    <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tds1 }}</small></p>
+  </fieldset>
+
+  <fieldset id="scheduleTDS2">
+    <legend>Schedule TDS2 &mdash; TDS other than salary (Form 16A)</legend>
+    {{ tds2_formset.management_form }}
+    {% for f in tds2_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ f.tan_or_pan.label_tag }}{{ f.tan_or_pan }}{{ f.tan_or_pan.errors }}</div>
+        <div class="field">{{ f.deductor_name.label_tag }}{{ f.deductor_name }}{{ f.deductor_name.errors }}</div>
+        <div class="field">{{ f.gross_receipt.label_tag }}{{ f.gross_receipt }}{{ f.gross_receipt.errors }}</div>
+        <div class="field">{{ f.deducted_year.label_tag }}{{ f.deducted_year }}{{ f.deducted_year.errors }}</div>
+      </div>
+      <div class="row formset-row">
+        <div class="field">{{ f.tax_deducted.label_tag }}{{ f.tax_deducted }}{{ f.tax_deducted.errors }}</div>
+        <div class="field">{{ f.tds_claimed_this_year.label_tag }}{{ f.tds_claimed_this_year }}{{ f.tds_claimed_this_year.errors }}</div>
+        <div class="field">{{ f.tds_section.label_tag }}{{ f.tds_section }}{{ f.tds_section.errors }}</div>
+        <div class="field">{{ f.head_of_income.label_tag }}{{ f.head_of_income }}{{ f.head_of_income.errors }}</div>
+        {% if f.DELETE %}{% if forloop.counter0 < tds2_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
+      </div>
+    {% endfor %}
+    <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tds2 }}</small></p>
+  </fieldset>
+
+  <fieldset id="scheduleTDS3">
+    <legend>Schedule TDS3 &mdash; TDS as per Form 16C/16D</legend>
+    {{ tds3_formset.management_form }}
+    {% for f in tds3_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ f.pan_of_tenant.label_tag }}{{ f.pan_of_tenant }}{{ f.pan_of_tenant.errors }}</div>
+        <div class="field">{{ f.aadhaar_of_tenant.label_tag }}{{ f.aadhaar_of_tenant }}{{ f.aadhaar_of_tenant.errors }}</div>
+        <div class="field">{{ f.name_of_tenant.label_tag }}{{ f.name_of_tenant }}{{ f.name_of_tenant.errors }}</div>
+        <div class="field">{{ f.gross_receipt.label_tag }}{{ f.gross_receipt }}{{ f.gross_receipt.errors }}</div>
+      </div>
+      <div class="row formset-row">
+        <div class="field">{{ f.deducted_year.label_tag }}{{ f.deducted_year }}{{ f.deducted_year.errors }}</div>
+        <div class="field">{{ f.tax_deducted.label_tag }}{{ f.tax_deducted }}{{ f.tax_deducted.errors }}</div>
+        <div class="field">{{ f.tds_claimed_this_year.label_tag }}{{ f.tds_claimed_this_year }}{{ f.tds_claimed_this_year.errors }}</div>
+        <div class="field">{{ f.tds_section.label_tag }}{{ f.tds_section }}{{ f.tds_section.errors }}</div>
+        <div class="field">{{ f.head_of_income.label_tag }}{{ f.head_of_income }}{{ f.head_of_income.errors }}</div>
+        {% if f.DELETE %}{% if forloop.counter0 < tds3_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
+      </div>
+    {% endfor %}
+    <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tds3 }}</small></p>
+  </fieldset>
+
+  <fieldset id="scheduleTCS">
+    <legend>Schedule TCS &mdash; Form 27D</legend>
+    {{ tcs_formset.management_form }}
+    {% for f in tcs_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ f.tan.label_tag }}{{ f.tan }}{{ f.tan.errors }}</div>
+        <div class="field">{{ f.collector_name.label_tag }}{{ f.collector_name }}{{ f.collector_name.errors }}</div>
+        <div class="field">{{ f.tax_collected.label_tag }}{{ f.tax_collected }}{{ f.tax_collected.errors }}</div>
+        <div class="field">{{ f.collected_year.label_tag }}{{ f.collected_year }}{{ f.collected_year.errors }}</div>
+        <div class="field">{{ f.tcs_claimed_this_year.label_tag }}{{ f.tcs_claimed_this_year }}{{ f.tcs_claimed_this_year.errors }}</div>
+        {% if f.DELETE %}{% if forloop.counter0 < tcs_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
+      </div>
+    {% endfor %}
+    <p><small>Column total (derived from schedule): &#8377;{{ computed.taxesPaid.tcs }}</small></p>
+  </fieldset>
+
+  <fieldset id="scheduleIT">
+    <legend>Schedule IT &mdash; Advance tax and self-assessment tax</legend>
+    <p><small>Each challan is classified automatically as advance tax (deposited 01.04.2025&ndash;31.03.2026) or
+      self-assessment tax (deposited after 31.03.2026) from its date of deposit &mdash; this is not a user choice.</small></p>
+    {{ challan_formset.management_form }}
+    {% for f in challan_formset %}
+      <div class="row formset-row">
+        <div class="field">{{ f.bsr_code.label_tag }}{{ f.bsr_code }}{{ f.bsr_code.errors }}</div>
+        <div class="field">{{ f.date_of_deposit.label_tag }}{{ f.date_of_deposit }}{{ f.date_of_deposit.errors }}</div>
+        <div class="field">{{ f.challan_serial_no.label_tag }}{{ f.challan_serial_no }}{{ f.challan_serial_no.errors }}</div>
+        <div class="field">{{ f.amount.label_tag }}{{ f.amount }}{{ f.amount.errors }}</div>
+        {% if f.DELETE %}{% if forloop.counter0 < challan_formset.initial_form_count %}<div class="field">{{ f.DELETE.label_tag }}{{ f.DELETE }}</div>{% endif %}{% endif %}
+      </div>
+    {% endfor %}
+    <p><small>Advance tax (derived): &#8377;{{ computed.taxesPaid.advanceTax }} &middot;
+      Self-assessment tax (derived): &#8377;{{ computed.taxesPaid.selfAssessmentTax }}</small></p>
+  </fieldset>
+
+  <fieldset id="totalTaxesPaid">
+    <legend>Total Taxes Paid</legend>
+    <p>Total Taxes Paid (computed): <strong>&#8377;{{ total_taxes_paid_display }}</strong></p>
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit" name="action" value="save">Save</button>
+    <button type="submit" name="action" value="confirm">Confirm</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "app_base.html" %}
+
+{% block title %}Two-factor authentication · STACOS.ai{% endblock %}
+
+{% block content %}
+<div class="auth-card-wrap">
+  <div class="auth-card">
+    <div class="eyebrow">Two-factor authentication</div>
+    <h1>Enter your code</h1>
+    <p class="helper-text">Enter the 6-digit code from your authenticator app.</p>
+
+    {% if form.non_field_errors %}
+      <div class="error-summary"><ul>{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        {{ form.code.label_tag }}
+        {{ form.code }}
+        {{ form.code.errors }}
+      </div>
+      <div class="actions">
+        <button type="submit">Verify and continue</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

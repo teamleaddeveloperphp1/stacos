@@ -1,0 +1,100 @@
+{% extends "itr/base.html" %}
+
+{% block title %}Validation & JSON{% endblock %}
+{% block page_title %}Validation & JSON{% endblock %}
+
+{% block content %}
+
+{% if report.ok %}
+  <div class="success-banner">
+    <strong>&#10003; Validation successful!</strong> No errors were found.
+  </div>
+{% else %}
+  <p><strong>&#10007; Validation failed</strong> — {{ report.errors|length }} error(s), {{ report.advisories|length }} advisory(ies).</p>
+{% endif %}
+
+{% if report.errors %}
+  <h2>Errors</h2>
+  {% for f in report.errors %}
+    <div class="finding">
+      <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
+      <div><em>{{ f.remediation }}</em></div>
+      {% if f.goto_url %}<a href="{{ f.goto_url }}">Go to field &rsaquo;</a>{% endif %}
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if report.advisories or report.documentAdvisories %}
+  <h2>Advisories — require acknowledgement before download</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% for f in report.advisories %}
+      <div class="finding advisory">
+        <label>
+          <input type="checkbox" name="ack_{{ f.ruleId }}" {% if f.ruleId not in pending_ack_ids %}checked{% endif %}>
+          <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
+        </label>
+        {% if f.goto_url %}<a href="{{ f.goto_url }}">Go to field &rsaquo;</a>{% endif %}
+      </div>
+    {% endfor %}
+    {% for f in report.documentAdvisories %}
+      <div class="finding document">
+        <label>
+          <input type="checkbox" name="ack_{{ f.ruleId }}" {% if f.ruleId not in pending_ack_ids %}checked{% endif %}>
+          <span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }}
+        </label>
+        {% if f.goto_url %}<a href="{{ f.goto_url }}">Go to field &rsaquo;</a>{% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" name="action" value="acknowledge">I understand — acknowledge selected</button>
+  </form>
+{% endif %}
+
+{% if report.ruleErrors %}
+  <h2>Rule engine errors (defects — never silently ignored)</h2>
+  <ul>
+    {% for e in report.ruleErrors %}<li><span class="rule-id">[{{ e.ruleId }}]</span> {{ e.error }}</li>{% endfor %}
+  </ul>
+{% endif %}
+
+<p>Rule set: {{ report.ruleSetVersion }} &middot; Constants: {{ report.constantsVersion }} &middot; Evaluated: {{ report.rulesEvaluated }} &middot; Skipped: {{ report.rulesSkipped }}</p>
+
+<hr>
+<h2>Verification</h2>
+<p><small>Declaration required by the CBDT schema before the JSON can be generated.</small></p>
+<form method="post">
+  {% csrf_token %}
+  <div class="row">
+    <div class="field">{{ verification_form.assessee_ver_name.label_tag }}{{ verification_form.assessee_ver_name }}{{ verification_form.assessee_ver_name.errors }}</div>
+    <div class="field">{{ verification_form.father_name.label_tag }}{{ verification_form.father_name }}{{ verification_form.father_name.errors }}</div>
+    <div class="field">{{ verification_form.assessee_ver_pan.label_tag }}{{ verification_form.assessee_ver_pan }}{{ verification_form.assessee_ver_pan.errors }}</div>
+  </div>
+  <div class="row">
+    <div class="field">{{ verification_form.capacity.label_tag }}{{ verification_form.capacity }}{{ verification_form.capacity.errors }}</div>
+    <div class="field">{{ verification_form.place.label_tag }}{{ verification_form.place }}{{ verification_form.place.errors }}</div>
+  </div>
+  <div class="actions">
+    <button type="submit" name="action" value="save_verification">Save</button>
+  </div>
+</form>
+
+<hr>
+<form method="post">
+  {% csrf_token %}
+  <div class="actions">
+    {% if downloadable %}
+      <button type="submit" name="action" value="download">Download JSON</button>
+    {% endif %}
+    <button type="submit" name="action" value="preview" formtarget="_blank">Preview</button>
+    <button type="submit" name="action" value="export_report" formtarget="_blank">Export validation report (PDF)</button>
+  </div>
+</form>
+{% if not downloadable %}
+  <p><em>Download JSON is disabled
+    {% if report.errors or report.ruleErrors %}— fix the errors above first.
+    {% elif pending_ack_ids %}— acknowledge every advisory above first.
+    {% else %}— the generated JSON does not yet validate against the CBDT schema.
+    {% endif %}
+  </em></p>
+{% endif %}
+{% endblock %}

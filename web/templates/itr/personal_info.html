@@ -1,0 +1,159 @@
+{% extends "itr/base.html" %}
+
+{% block title %}Personal Information{% endblock %}
+{% block page_title %}Personal Information{% endblock %}
+
+{% block content %}
+{% if conflict_message %}
+  <div class="finding">{{ conflict_message }}</div>
+{% endif %}
+
+{% if report.errors %}
+  <div class="finding" role="alert">
+    <strong>{{ report.errors|length }} error(s) found — fix these before Confirm will succeed:</strong>
+    <ul>
+      {% for f in report.errors %}<li><span class="rule-id">[{{ f.ruleId }}]</span> {{ f.message }} <em>{{ f.remediation }}</em></li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div class="summary-box">
+  <span class="summary-box-title">Tax payable — regime comparison (neutral, computed live from this return)</span>
+  New regime: <strong>&#8377;{{ regime_comparison.NEW }}</strong> &middot;
+  Old regime: <strong>&#8377;{{ regime_comparison.OLD }}</strong>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="_version" value="{{ draft_version }}">
+
+  <fieldset id="profile">
+    <legend>Profile</legend>
+    <div class="row">
+      <div class="field">{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
+      <div class="field">{{ form.middle_name.label_tag }}{{ form.middle_name }}{{ form.middle_name.errors }}</div>
+      <div class="field">{{ form.last_name.label_tag }}{{ form.last_name }}{{ form.last_name.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.pan.label_tag }}{{ form.pan }}{{ form.pan.errors }}</div>
+      <div class="field">{{ form.dob.label_tag }}{{ form.dob }}{{ form.dob.errors }}</div>
+      <div class="field">{{ form.aadhaar.label_tag }}{{ form.aadhaar }}{{ form.aadhaar.errors }}</div>
+    </div>
+    <div class="field">{{ form.employer_category.label_tag }}{{ form.employer_category }}{{ form.employer_category.errors }}</div>
+  </fieldset>
+
+  <fieldset id="contact">
+    <legend>Contact</legend>
+    <div class="row">
+      <div class="field">{{ form.primary_mobile.label_tag }}{{ form.primary_mobile }}{{ form.primary_mobile.errors }}</div>
+      <div class="field">{{ form.secondary_mobile.label_tag }}{{ form.secondary_mobile }}{{ form.secondary_mobile.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.primary_email.label_tag }}{{ form.primary_email }}{{ form.primary_email.errors }}</div>
+      <div class="field">{{ form.secondary_email.label_tag }}{{ form.secondary_email }}{{ form.secondary_email.errors }}</div>
+    </div>
+  </fieldset>
+
+  <fieldset id="primaryAddress">
+    <legend>Primary Address</legend>
+    <div class="row">
+      <div class="field">{{ form.flat_door_building.label_tag }}{{ form.flat_door_building }}{{ form.flat_door_building.errors }}</div>
+      <div class="field">{{ form.premise_building_name.label_tag }}{{ form.premise_building_name }}{{ form.premise_building_name.errors }}</div>
+      <div class="field">{{ form.road_street.label_tag }}{{ form.road_street }}{{ form.road_street.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.area_locality.label_tag }}{{ form.area_locality }}{{ form.area_locality.errors }}</div>
+      <div class="field">{{ form.town_city_district.label_tag }}{{ form.town_city_district }}{{ form.town_city_district.errors }}</div>
+      <div class="field">{{ form.state_code.label_tag }}{{ form.state_code }}{{ form.state_code.errors }}</div>
+      <div class="field">{{ form.pin_code.label_tag }}{{ form.pin_code }}{{ form.pin_code.errors }}</div>
+    </div>
+    <div class="field">
+      {{ form.secondary_address_same_as_primary.label_tag }}
+      {{ form.secondary_address_same_as_primary }}
+      {{ form.secondary_address_same_as_primary.errors }}
+    </div>
+  </fieldset>
+
+  <fieldset id="filingSection">
+    <legend>Filing Section</legend>
+    <p class="helper-text">
+      {{ filing_section_label }} &middot; {% if regime == 'OLD' %}Old Tax Regime{% else %}New Tax Regime{% endif %}
+      &middot; <a href="{% url 'itr:filing_section' return_id %}">Change</a>
+    </p>
+    <div class="row">
+      <div class="field">{{ form.orig_return_ack_no.label_tag }}{{ form.orig_return_ack_no }}{{ form.orig_return_ack_no.errors }}</div>
+      <div class="field">{{ form.orig_return_filed_date.label_tag }}{{ form.orig_return_filed_date }}{{ form.orig_return_filed_date.errors }}</div>
+      <div class="field">{{ form.orig_return_file_sec.label_tag }}{{ form.orig_return_file_sec }}{{ form.orig_return_file_sec.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.a23_responses_original.label_tag }}{{ form.a23_responses_original }}{{ form.a23_responses_original.errors }}</div>
+      <div class="field">{{ form.a23_responses_current.label_tag }}{{ form.a23_responses_current }}{{ form.a23_responses_current.errors }}</div>
+    </div>
+  </fieldset>
+
+  <fieldset id="seventhProviso">
+    <legend>Seventh Proviso to s.139(1)</legend>
+    <div class="field">
+      {{ form.seventh_proviso_139.label_tag }}{{ form.seventh_proviso_139 }}{{ form.seventh_proviso_139.errors }}
+    </div>
+    <div class="row">
+      <div class="field">{{ form.travel_expense_above_2lakh.label_tag }}{{ form.travel_expense_above_2lakh }}{{ form.travel_expense_above_2lakh.errors }}</div>
+      <div class="field">{{ form.travel_expense_amount.label_tag }}{{ form.travel_expense_amount }}{{ form.travel_expense_amount.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.electricity_above_1lakh.label_tag }}{{ form.electricity_above_1lakh }}{{ form.electricity_above_1lakh.errors }}</div>
+      <div class="field">{{ form.electricity_amount.label_tag }}{{ form.electricity_amount }}{{ form.electricity_amount.errors }}</div>
+    </div>
+    <div class="field">{{ form.clause_iv_applies.label_tag }}{{ form.clause_iv_applies }}{{ form.clause_iv_applies.errors }}</div>
+  </fieldset>
+
+  <fieldset id="representativeAssessee">
+    <legend>Representative Assessee</legend>
+    <div class="row">
+      <div class="field">{{ form.representative_assessee_flag.label_tag }}{{ form.representative_assessee_flag }}{{ form.representative_assessee_flag.errors }}</div>
+      <div class="field">{{ form.verification_capacity.label_tag }}{{ form.verification_capacity }}{{ form.verification_capacity.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.representative_name.label_tag }}{{ form.representative_name }}{{ form.representative_name.errors }}</div>
+      <div class="field">{{ form.representative_pan.label_tag }}{{ form.representative_pan }}{{ form.representative_pan.errors }}</div>
+      <div class="field">{{ form.representative_capacity_other.label_tag }}{{ form.representative_capacity_other }}{{ form.representative_capacity_other.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.representative_email.label_tag }}{{ form.representative_email }}{{ form.representative_email.errors }}</div>
+      <div class="field">{{ form.representative_mobile.label_tag }}{{ form.representative_mobile }}{{ form.representative_mobile.errors }}</div>
+    </div>
+  </fieldset>
+
+  <fieldset id="bankDetails">
+    <legend>Bank Details <span class="required-marker">*</span></legend>
+    <p class="helper-text">At least one bank account is required, with exactly one nominated for refund.</p>
+    {% if bank_errors %}
+      <ul class="errorlist">
+        {% for e in bank_errors %}<li>{{ e }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {{ formset.management_form }}
+    {% for bank_form in formset %}
+      <div class="row formset-row">
+        <div class="field">{{ bank_form.ifsc.label_tag }}{{ bank_form.ifsc }}{{ bank_form.ifsc.errors }}</div>
+        <div class="field">{{ bank_form.bank_name.label_tag }}{{ bank_form.bank_name }}{{ bank_form.bank_name.errors }}<small>{{ bank_form.bank_name.help_text }}</small></div>
+        <div class="field">{{ bank_form.account_number.label_tag }}{{ bank_form.account_number }}{{ bank_form.account_number.errors }}</div>
+        <div class="field">{{ bank_form.account_type.label_tag }}{{ bank_form.account_type }}{{ bank_form.account_type.errors }}</div>
+        <div class="field">{{ bank_form.nominate_for_refund.label_tag }}{{ bank_form.nominate_for_refund }}</div>
+        {% if bank_form.DELETE %}
+          {% if forloop.counter0 < formset.initial_form_count %}
+            <div class="field">{{ bank_form.DELETE.label_tag }}{{ bank_form.DELETE }}</div>
+          {% else %}
+            <div class="field"><small>Leave blank if you don't want to add another account.</small></div>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endfor %}
+  </fieldset>
+
+  <div class="actions">
+    <button type="submit" name="action" value="save">Save</button>
+    <button type="submit" name="action" value="confirm">Confirm</button>
+  </div>
+</form>
+{% endblock %}
