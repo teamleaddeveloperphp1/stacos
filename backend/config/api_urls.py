@@ -10,8 +10,8 @@ itr/api/v1/members_urls.py's docstring)."""
 from django.urls import include, path
 
 urlpatterns = [
-    path('itr/', include('itr.api.v1.urls')),
-    path('members/', include('itr.api.v1.members_urls')),
-    path('services/', include('catalog.api.v1.urls')),
+    path('itr/', include('apps.itr.api.v1.urls')),
+    path('members/', include('apps.itr.api.v1.members_urls')),
+    path('services/', include('infra.catalog.api.v1.urls')),
     # path('tds/', include('tds.api.v1.urls')),  # <- when TDS lands
 ]

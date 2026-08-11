@@ -27,7 +27,7 @@ def healthz(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('healthz/', healthz, name='healthz'),
-    path('accounts/', include('accounts.urls')),
+    path('accounts/', include('infra.accounts.urls')),
     # Mounted at project level, not nested in accounts.urls's app_name
     # namespace -- django-simple-captcha's own helpers call
     # reverse("captcha-image", ...) unnamespaced, which breaks if these
@@ -37,7 +37,7 @@ urlpatterns = [
     # empty-prefix includes, and DRF/Django resolve top-down, so /api/v1/
     # must be seen first or a later empty-prefix urlconf could claim it.
     path('api/v1/', include('config.api_urls')),
-    path('', include('catalog.urls')),
+    path('', include('infra.catalog.urls')),
     path('', RedirectView.as_view(pattern_name='catalog:dashboard', permanent=False)),
-    path('', include('itr.urls')),
+    path('', include('apps.itr.urls')),
 ]

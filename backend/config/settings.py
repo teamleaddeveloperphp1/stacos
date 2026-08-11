@@ -58,9 +58,9 @@ INSTALLED_APPS = [
     'axes',
     'rest_framework',
     'corsheaders',
-    'itr',
-    'accounts',
-    'catalog',
+    'apps.itr',
+    'infra.accounts',
+    'infra.catalog',
 ]
 
 MIDDLEWARE = [
@@ -71,7 +71,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django_otp.middleware.OTPMiddleware',
-    'accounts.middleware.AccessControlMiddleware',
+    'infra.accounts.middleware.AccessControlMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
@@ -98,7 +98,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'EXCEPTION_HANDLER': 'itr.api.v1.exceptions.exception_handler',
+    'EXCEPTION_HANDLER': 'apps.itr.api.v1.exceptions.exception_handler',
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
@@ -106,7 +106,7 @@ REST_FRAMEWORK = {
 
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
-    'accounts.backends.EmailBackend',
+    'infra.accounts.backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -225,7 +225,7 @@ OTP_TOTP_THROTTLE_FACTOR = 0
 # django-simple-captcha
 CAPTCHA_LETTER_ROTATION = None
 CAPTCHA_NOISE_FUNCTIONS = ('captcha.helpers.noise_dots',)
-CAPTCHA_CHALLENGE_FUNCT = 'accounts.captcha.challenge'
+CAPTCHA_CHALLENGE_FUNCT = 'infra.accounts.captcha.challenge'
 CAPTCHA_TIMEOUT = 5  # minutes
 CAPTCHA_LENGTH = 6
 
