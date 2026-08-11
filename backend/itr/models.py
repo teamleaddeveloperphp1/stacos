@@ -60,6 +60,37 @@ class TaxReturn(models.Model):
         self.version += 1
 
 
+class TaxFiler(models.Model):
+    """A person the account holder files ITRs for. Reusable across
+    assessment years -- distinct from TaxReturn, which is one year's draft
+    and carries its own (possibly stale) copy of this identity in
+    data['personalInfo']."""
+
+    GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tax_filers')
+    pan = models.CharField(max_length=10)
+    first_name = models.CharField(max_length=60)
+    middle_name = models.CharField(max_length=60, blank=True)
+    last_name = models.CharField(max_length=60)
+    dob = models.DateField()
+    email = models.EmailField(max_length=125)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    father_name = models.CharField(max_length=120)
+    mobile_number = models.CharField(max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['owner', 'pan'], name='unique_owner_pan')]
+        ordering = ['first_name', 'last_name']
+
+    def __str__(self):
+        name = ' '.join(x for x in (self.first_name, self.middle_name, self.last_name) if x)
+        return f'{name} · {self.pan}'
+
+
 class AuditLogEntry(models.Model):
     """Every field change, validation run, and JSON generation, per
     architecture mandate 6 ("full audit trail")."""

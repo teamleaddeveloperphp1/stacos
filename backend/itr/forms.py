@@ -1,5 +1,9 @@
+import re
+
 from django.core.validators import RegexValidator
 from django import forms
+
+from itr.models import TaxFiler
 
 RETURN_FILE_SEC_CHOICES = [
     (11, '139(1) — on/before due date'),
@@ -44,6 +48,39 @@ ACCOUNT_TYPE_CHOICES = [
 ]
 
 
+class FilingSectionForm(forms.Form):
+    """A standalone gate screen shown right after Continue/Start, before the
+    Personal Information form: which u/s 139 filing section applies, and
+    which tax regime -- these two decide which fields the rest of the return
+    even shows (see the regime-hidden CSS toggling on Gross Total Income /
+    Total Deductions), so they're answered first, on their own."""
+
+    return_file_sec = forms.TypedChoiceField(
+        label='Filing section', choices=RETURN_FILE_SEC_CHOICES, coerce=int,
+    )
+    opt_out_of_new_regime = forms.ChoiceField(
+        label='Which tax regime do you want to file under?',
+        choices=[('N', 'New Tax Regime (default u/s 115BAC)'), ('Y', 'Old Tax Regime')],
+        initial='N',
+        help_text=(
+            'This choice decides which fields you see on the rest of this return -- Old Tax Regime unlocks '
+            'Chapter VI-A deductions (80C, 80D, HRA, etc.), the New Tax Regime hides them. Old Tax Regime '
+            'becomes unavailable when the filing section requires a belated/revised return (rule A-151).'
+        ),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        # A-151: old regime unavailable once filed belated u/s 139(4) (or later
+        # sections that likewise foreclose it) — force the opt-out to "No".
+        if cleaned.get('return_file_sec') in (12, 17, 18) and cleaned.get('opt_out_of_new_regime') == 'Y':
+            self.add_error(
+                'opt_out_of_new_regime',
+                'Old regime unavailable: return is being filed after the due date (rule A-151).',
+            )
+        return cleaned
+
+
 class PersonalInfoForm(forms.Form):
     first_name = forms.CharField(label='First name', max_length=60)
     middle_name = forms.CharField(label='Middle name', max_length=60, required=False)
@@ -68,14 +105,6 @@ class PersonalInfoForm(forms.Form):
 
     secondary_address_same_as_primary = forms.ChoiceField(
         label='Is the secondary address same as primary?', choices=YES_NO_CHOICES, initial='Y',
-    )
-
-    return_file_sec = forms.TypedChoiceField(
-        label='Filing section', choices=RETURN_FILE_SEC_CHOICES, coerce=int,
-    )
-    opt_out_of_new_regime = forms.ChoiceField(
-        label='Opt out of new tax regime u/s 115BAC(6)?', choices=YES_NO_CHOICES, initial='N',
-        help_text='Default is No. Disabled and locked to No when the filing section makes the old regime unavailable (rule A-151).',
     )
 
     # --- Original return details (139(5) revised / 139(9) defective-response) ---
@@ -126,14 +155,6 @@ class PersonalInfoForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
-        # A-151: old regime unavailable once filed belated u/s 139(4) (or later
-        # sections that likewise foreclose it) — force the opt-out to "No".
-        if cleaned.get('return_file_sec') in (12, 17, 18) and cleaned.get('opt_out_of_new_regime') == 'Y':
-            self.add_error(
-                'opt_out_of_new_regime',
-                'Old regime unavailable: return is being filed after the due date (rule A-151).',
-            )
-
         # §4.5 / A-293: representative details mandatory once the flag is Yes.
         if cleaned.get('representative_assessee_flag') == 'Y':
             for field, label in (
@@ -155,10 +176,34 @@ class PersonalInfoForm(forms.Form):
         return cleaned
 
 
+class TaxFilerForm(forms.Form):
+    """Adds/edits a reusable TaxFiler (itr.models.TaxFiler) -- the identity
+    a Continue click carries into that person's TaxReturn.data['personalInfo'],
+    kept separate from PersonalInfoForm because a TaxFiler exists before any
+    return does and is never filing-status/regime aware."""
+
+    pan = forms.CharField(label='PAN', max_length=10)
+    dob = forms.DateField(label='Date of birth', widget=forms.DateInput(attrs={'type': 'date'}))
+    email = forms.EmailField(label='Email', max_length=125)
+    first_name = forms.CharField(label='First Name', max_length=60)
+    middle_name = forms.CharField(label='Middle Name', max_length=60, required=False)
+    last_name = forms.CharField(label='Last Name', max_length=60)
+    gender = forms.ChoiceField(label='Gender', choices=[('', '--Select--')] + TaxFiler.GENDER_CHOICES)
+    father_name = forms.CharField(label='Father Name', max_length=120)
+    mobile_number = forms.CharField(label='Mobile Number', max_length=10, validators=[RegexValidator(
+        r'^[0-9]{10}$', 'Enter a valid 10-digit mobile number.')],
+        help_text='WhatsApp number preferred - for updates to tax filing')
+
+    def clean_pan(self):
+        pan = self.cleaned_data['pan'].strip().upper()
+        if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', pan):
+            raise forms.ValidationError('Enter a valid PAN (e.g. ABCDE1234F).')
+        return pan
+
+
 class BankAccountForm(forms.Form):
     ifsc = forms.CharField(label='IFSC', max_length=11)
-    bank_name = forms.CharField(label='Bank name', max_length=120, required=False,
-                                 help_text='Auto-populated once the IFSC is verified.')
+    bank_name = forms.CharField(label='Bank name', max_length=120, required=False)
     account_number = forms.CharField(label='Account number', max_length=20)
     account_type = forms.ChoiceField(label='Account type', choices=ACCOUNT_TYPE_CHOICES, initial='SB')
     nominate_for_refund = forms.BooleanField(label='Nominate for refund', required=False)
@@ -301,6 +346,22 @@ class SalaryForm(forms.Form):
     professional_tax_16iii = forms.IntegerField(
         label='Professional tax u/s 16(iii)', min_value=0, initial=0, required=False,
     )
+
+
+HRA_PLACE_OF_WORK_CHOICES = [('', '— Select —'), ('1', 'Metro city'), ('2', 'Non-metro city')]
+
+
+class HraForm(forms.Form):
+    """Schedule 10(13A) — feeds itr.engine.compute.compute_hra, which
+    already computes the least-of-three exemption and zeroes it under the
+    new regime; this form just captures the four facts that computation
+    needs (model_blank.blank_hra)."""
+
+    place_of_work = forms.ChoiceField(label='Place of work', choices=HRA_PLACE_OF_WORK_CHOICES, required=False)
+    actual_hra_received = forms.IntegerField(label='Actual HRA received', min_value=0, initial=0, required=False)
+    actual_rent_paid = forms.IntegerField(label='Actual rent paid', min_value=0, initial=0, required=False)
+    basic_salary = forms.IntegerField(label='Basic salary', min_value=0, initial=0, required=False)
+    dearness_allowance = forms.IntegerField(label='Dearness allowance (forming part of retirement benefits)', min_value=0, initial=0, required=False)
 
 
 class ExemptAllowanceForm(forms.Form):

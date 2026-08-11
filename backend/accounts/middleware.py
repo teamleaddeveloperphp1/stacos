@@ -14,7 +14,6 @@ ALWAYS_ALLOWED_PREFIXES = (
     '/accounts/captcha/',
     '/static/',
     '/media/',
-    '/set-locale/',
     '/healthz/',
     '/admin/',
 )

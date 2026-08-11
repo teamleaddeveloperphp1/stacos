@@ -548,19 +548,6 @@ def build_facts(m, c):
     f['bankAccounts'] = [dict(b) for b in m['bankAccounts']]
     f['bankAccountCount'] = len(m['bankAccounts'])
     f['nominatedAccountCount'] = len([b for b in m['bankAccounts'] if b.get('nominateForRefund')])
-    # A-107 covers Bank Details, Schedule 80G and Schedule 80GGC IFSCs alike;
-    # a donee/GGC row with no IFSC entered (a cash donation) has nothing to
-    # verify and must not count against the assertion.
-    f['anyIfscUnverified'] = (
-        any(b.get('ifscVerified') is not True for b in m['bankAccounts'])
-        or any(r.get('ifsc') and r.get('ifscVerified') is not True for r in all_donees)
-        or any(r.get('ifsc') and r.get('ifscVerified') is not True for r in m['deductions']['schedule80GGC'])
-    )
-    f['allIfscKeys'] = [x for x in (
-        [b.get('ifsc') for b in m['bankAccounts']]
-        + [r.get('ifsc') for r in all_donees]
-        + [r.get('ifsc') for r in m['deductions']['schedule80GGC']]
-    ) if x]
 
     # ---- constants exposed to expressions ---------------------------------
     f['K'] = Constants

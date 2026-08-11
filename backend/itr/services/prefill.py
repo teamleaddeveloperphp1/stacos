@@ -188,8 +188,6 @@ def apply_prefill(model, payload, overwrite=False):
                 'accountNumber': b['accountNumber'],
                 'accountType': b['accountType'],
                 'nominateForRefund': i == 0,
-                'ifscVerified': None,
-                'ifscVerificationNote': 'Awaiting IFSC verification',
             }
             for i, b in enumerate(bank_accounts)
         ]

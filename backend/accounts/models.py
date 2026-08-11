@@ -12,15 +12,12 @@ class Profile(models.Model):
     (accounts.forms.SignUpForm), not a DB constraint on a table we don't own.
     """
 
-    LANGUAGE_CHOICES = [('en', 'English'), ('hi', 'हिन्दी')]
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
     middle_name = models.CharField(max_length=150, blank=True)
     mobile = models.CharField(max_length=15, blank=True)
     pan = models.CharField(max_length=10, blank=True, unique=False)
     date_of_birth = models.DateField(null=True, blank=True)
-    preferred_language = models.CharField(max_length=2, choices=LANGUAGE_CHOICES, default='en')
     mfa_enforced = models.BooleanField(default=False)
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
     terms_version = models.CharField(max_length=20, blank=True)

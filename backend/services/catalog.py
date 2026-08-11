@@ -16,12 +16,19 @@ class Service:
 # editing one entry here, nothing else.
 CATALOG = [
     Service(
-        slug='tds-itr',
-        name='TDS, ITR',
+        slug='itr',
+        name='ITR',
         description='Prepare, validate and file ITR-1 returns.',
         icon='📄',
         available=True,
-        url_name='itr:return_list',
+        url_name='itr:member_list',
+    ),
+    Service(
+        slug='tds',
+        name='TDS',
+        description='TDS return preparation and filing.',
+        icon='🧾',
+        available=False,
     ),
     Service(
         slug='esic',
@@ -35,6 +42,13 @@ CATALOG = [
         name='EPF Compliance',
         description='Employee Provident Fund compliance filings.',
         icon='🏦',
+        available=False,
+    ),
+    Service(
+        slug='gst',
+        name='GST Compliance',
+        description='GST return preparation and filing.',
+        icon='🧮',
         available=False,
     ),
     Service(

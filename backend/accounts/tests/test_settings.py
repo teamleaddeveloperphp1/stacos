@@ -87,18 +87,6 @@ class PasswordSectionTests(TestCase):
         self.assertRedirects(response, f"{reverse('accounts:login')}?next={reverse('accounts:settings')}")
 
 
-class LanguageSectionTests(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='s3', email='s3@example.com', password='x')
-        self.client.force_login(self.user, backend='accounts.backends.EmailBackend')
-
-    def test_language_saves_and_applies_immediately(self):
-        response = self.client.post(reverse('accounts:settings'), {'section': 'language', 'preferred_language': 'hi'})
-        self.assertRedirects(response, reverse('accounts:settings'))
-        self.assertEqual(Profile.objects.get(user=self.user).preferred_language, 'hi')
-        self.assertEqual(self.client.session.get('locale'), 'hi')
-
-
 class MfaDisableTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='s4', email='s4@example.com', password='correct-horse-battery')

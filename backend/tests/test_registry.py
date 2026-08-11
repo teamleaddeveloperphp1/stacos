@@ -3,7 +3,9 @@ from itr.rules.registry import registry_counts, rules, validate_registry
 
 def test_registry_counts_match_cbdt_spec():
     counts = registry_counts()
-    assert counts == {'A': 339, 'B': 9, 'D': 1, 'total': 349}
+    # A-107 (IFSC/RBI-database verification) was removed -- this product no
+    # longer verifies IFSCs against an external directory.
+    assert counts == {'A': 338, 'B': 9, 'D': 1, 'total': 348}
 
 
 def test_registry_self_check_has_no_problems():

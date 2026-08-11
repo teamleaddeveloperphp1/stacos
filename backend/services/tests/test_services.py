@@ -13,15 +13,15 @@ class DashboardTests(TestCase):
         self.user = User.objects.create_user(username='svc1', email='svc1@example.com', password='x')
         self.client.force_login(self.user, backend='accounts.backends.EmailBackend')
 
-    def test_dashboard_renders_five_cards(self):
+    def test_dashboard_renders_seven_cards(self):
         response = self.client.get(reverse('services:dashboard'))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context['cards']), 5)
+        self.assertEqual(len(response.context['cards']), 7)
 
-    def test_tds_itr_links_to_returns_landing_page(self):
+    def test_itr_links_to_members_landing_page(self):
         response = self.client.get(reverse('services:dashboard'))
-        tds_card = next(c for c in response.context['cards'] if c['service'].slug == 'tds-itr')
-        self.assertEqual(tds_card['url'], reverse('itr:return_list'))
+        itr_card = next(c for c in response.context['cards'] if c['service'].slug == 'itr')
+        self.assertEqual(itr_card['url'], reverse('itr:member_list'))
 
     def test_anonymous_redirected_to_login(self):
         self.client.logout()

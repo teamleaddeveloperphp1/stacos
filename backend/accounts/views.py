@@ -21,7 +21,6 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from accounts.forms import (
     ChangePasswordForm,
     DeleteAccountForm,
-    LanguageForm,
     LoginForm,
     MfaDisableForm,
     MfaSetupCodeForm,
@@ -29,7 +28,6 @@ from accounts.forms import (
     ProfileForm,
     SignUpForm,
 )
-from accounts.i18n_translate import translate
 from accounts.mfa import base32_secret, find_verified_device, get_or_create_setup_device, qr_data_uri
 from accounts.models import MfaEnrollment, get_profile, log_auth_event
 from accounts.ratelimit import check_and_increment, get_counter, increment_counter, reset_counter
@@ -205,15 +203,11 @@ class LogoutView(View):
         return HttpResponseNotAllowed(['POST'])
 
     def post(self, request):
-        # django.contrib.auth.logout() flushes the whole session (including
-        # pending-MFA keys and the locale choice), so read what we need first.
-        locale = request.session.get('locale', 'en')
         user = request.user if request.user.is_authenticated else None
         logout(request)
         if user:
             log_auth_event(request, 'logout', user=user)
-        request.session['locale'] = locale
-        messages.info(request, translate(locale, 'signed_out_message'))
+        messages.info(request, 'You have been signed out.')
         return redirect('accounts:login')
 
 
@@ -395,12 +389,10 @@ class SettingsView(View):
 
     def _context(self, request, **extra):
         user = request.user
-        profile = get_profile(user)
         mfa_device = TOTPDevice.objects.filter(user=user, confirmed=True).first()
         ctx = {
             'profile_form': ProfileForm(user=user, initial={'username': user.username, 'email': user.email}),
             'password_form': ChangePasswordForm(user=user),
-            'language_form': LanguageForm(initial={'preferred_language': profile.preferred_language}),
             'mfa_disable_form': MfaDisableForm(user=user),
             'delete_form': DeleteAccountForm(user=user),
             'mfa_enabled': mfa_device is not None,
@@ -443,17 +435,6 @@ class SettingsView(View):
             if s.session_key != request.session.session_key:
                 s.delete()
         messages.success(request, _('Password changed. Other sessions were signed out.'))
-        return redirect('accounts:settings')
-
-    def _post_language(self, request):
-        form = LanguageForm(request.POST)
-        if not form.is_valid():
-            return render(request, self.template_name, self._context(request, language_form=form))
-        profile = get_profile(request.user)
-        profile.preferred_language = form.cleaned_data['preferred_language']
-        profile.save()
-        request.session['locale'] = profile.preferred_language
-        messages.success(request, _('Language updated.'))
         return redirect('accounts:settings')
 
     def _post_mfa_disable(self, request):

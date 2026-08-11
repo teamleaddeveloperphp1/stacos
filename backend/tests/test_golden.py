@@ -114,8 +114,6 @@ def golden_model():
             'accountNumber': '50100123456789',
             'accountType': 'SB',
             'nominateForRefund': True,
-            'ifscVerified': True,
-            'ifscVerificationNote': 'HDFC BANK -- PATNA MAIN',
         }
     ]
 

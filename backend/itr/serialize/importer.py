@@ -581,8 +581,6 @@ def import_from_json(document, ctx):
             'accountNumber': _s(b.get('BankAccountNo')),
             'accountType': _s(b.get('AccountType')),
             'nominateForRefund': _s(b.get('UseForRefund')) == 'true',
-            'ifscVerified': None,
-            'ifscVerificationNote': 'Re-verification required after import',
         }
         for b in _arr(_obj(_obj(p.get('Refund')).get('BankAccountDtls')).get('AddtnlBankDetails'))
     ]

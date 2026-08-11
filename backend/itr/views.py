@@ -1,5 +1,7 @@
 import copy
 
+from django.contrib import messages
+from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -8,7 +10,6 @@ from django.utils import timezone
 from itr.engine.compute import compute
 from itr.engine.validate import validate
 from itr.serialize.generate import GenerationBlockedError, generate_json, generate_json_or_throw
-from itr.services.ifsc_directory import ifsc_validator
 from itr.forms import (
     BankAccountFormSet,
     ChallanFormSet,
@@ -18,7 +19,9 @@ from itr.forms import (
     ExemptAllowanceFormSet,
     ExemptIncomeFormSet,
     HousePropertyFormSet,
+    HraForm,
     OtherSourceFormSet,
+    FilingSectionForm,
     PersonalInfoForm,
     RETURN_FILE_SEC_CHOICES,
     SCHEDULE_80G_BLOCK_MODEL_KEY,
@@ -33,6 +36,7 @@ from itr.forms import (
     Schedule80GFormSet,
     Schedule80GGAFormSet,
     Schedule80GGCFormSet,
+    TaxFilerForm,
     TaxLiabilityForm,
     VerificationForm,
     TcsFormSet,
@@ -42,7 +46,7 @@ from itr.forms import (
 )
 from itr.deep_links import resolve_deep_link
 from itr.model_blank import blank_address
-from itr.models import AuditLogEntry, TaxReturn
+from itr.models import AuditLogEntry, TaxFiler, TaxReturn
 from itr.pdf import render_computation_sheet_pdf, render_return_preview_pdf, render_validation_report_pdf
 from itr.rules.registry import RULE_SET_VERSION
 from itr.screens import build_menu_items
@@ -95,14 +99,6 @@ def _current_user(request):
     return request.user
 
 
-def set_locale(request, locale):
-    """§13: English/Hindi UI toggle. Stores the choice in the session and
-    bounces back to wherever the link was clicked from."""
-    if locale in ('en', 'hi'):
-        request.session['locale'] = locale
-    return redirect(request.META.get('HTTP_REFERER') or 'itr:return_list')
-
-
 def return_list(request):
     user = _current_user(request)
     returns = TaxReturn.objects.filter(owner=user).order_by('-updated_at')
@@ -129,7 +125,114 @@ def return_list(request):
 def return_create(request):
     user = _current_user(request)
     tax_return = TaxReturn.objects.create(owner=user)
-    return redirect('itr:personal_info', return_id=tax_return.pk)
+    return redirect('itr:filing_section', return_id=tax_return.pk)
+
+
+def filing_section(request, return_id):
+    """Gate screen shown before Personal Information: filing section + tax
+    regime, answered on their own since they decide which fields the rest
+    of the return even shows."""
+    tax_return = _get_return(request, return_id)
+    model = tax_return.data
+    fs = model['filingStatus']
+
+    if request.method == 'POST':
+        form = FilingSectionForm(request.POST)
+        if form.is_valid():
+            fs['returnFileSec'] = form.cleaned_data['return_file_sec']
+            fs['optOutOfNewRegime'] = form.cleaned_data['opt_out_of_new_regime']
+            tax_return.bump_version()
+            tax_return.save()
+            return redirect('itr:personal_info', return_id=return_id)
+    else:
+        form = FilingSectionForm(initial={
+            'return_file_sec': fs['returnFileSec'],
+            'opt_out_of_new_regime': fs['optOutOfNewRegime'] or 'N',
+        })
+
+    return render(request, 'itr/filing_section.html', {
+        'ay': model['ay'],
+        'menu_items': build_menu_items(return_id, _screen_status(tax_return)),
+        'page_title': 'Filing Section',
+        'form': form,
+        'return_id': return_id,
+        **_chrome_context(tax_return),
+    })
+
+
+MEMBERS_PAGE_SIZE = 5
+
+
+def _get_filer(request, member_id):
+    return get_object_or_404(TaxFiler, pk=member_id, owner=_current_user(request))
+
+
+def member_list(request):
+    user = _current_user(request)
+    filers = TaxFiler.objects.filter(owner=user)
+    if not filers.exists():
+        return redirect('itr:member_add')
+
+    page_number = request.GET.get('page', 1)
+    page = Paginator(filers, MEMBERS_PAGE_SIZE).get_page(page_number)
+    return render(request, 'itr/member_list.html', {'page': page})
+
+
+def member_add(request):
+    if request.method == 'POST':
+        form = TaxFilerForm(request.POST)
+        if form.is_valid():
+            TaxFiler.objects.create(owner=_current_user(request), **form.cleaned_data)
+            return redirect('itr:member_list')
+    else:
+        form = TaxFilerForm()
+    return render(request, 'itr/member_form.html', {'form': form, 'is_edit': False})
+
+
+def member_edit(request, member_id):
+    filer = _get_filer(request, member_id)
+    if request.method == 'POST':
+        form = TaxFilerForm(request.POST)
+        if form.is_valid():
+            for field, value in form.cleaned_data.items():
+                setattr(filer, field, value)
+            filer.save()
+            return redirect('itr:member_list')
+    else:
+        form = TaxFilerForm(initial={
+            'pan': filer.pan, 'dob': filer.dob, 'email': filer.email,
+            'first_name': filer.first_name, 'middle_name': filer.middle_name, 'last_name': filer.last_name,
+            'gender': filer.gender, 'father_name': filer.father_name, 'mobile_number': filer.mobile_number,
+        })
+    return render(request, 'itr/member_form.html', {'form': form, 'is_edit': True, 'filer': filer})
+
+
+def member_delete(request, member_id):
+    if request.method != 'POST':
+        return redirect('itr:member_list')
+    filer = _get_filer(request, member_id)
+    if TaxReturn.objects.filter(owner=filer.owner, pan=filer.pan).exists():
+        messages.error(request, f'Cannot delete {filer.first_name} {filer.last_name} — a return already exists for this PAN.')
+    else:
+        filer.delete()
+    return redirect('itr:member_list')
+
+
+def member_continue(request, member_id):
+    filer = _get_filer(request, member_id)
+    tax_return = TaxReturn.objects.filter(owner=filer.owner, pan=filer.pan, ay='2026-27').order_by('-updated_at').first()
+    if tax_return is None:
+        tax_return = TaxReturn.objects.create(owner=filer.owner, pan=filer.pan)
+        pi = tax_return.data['personalInfo']
+        pi['firstName'] = filer.first_name
+        pi['middleName'] = filer.middle_name
+        pi['lastName'] = filer.last_name
+        pi['pan'] = filer.pan
+        pi['dob'] = filer.dob.isoformat()
+        pi['contact']['primaryEmail'] = filer.email
+        pi['contact']['primaryMobile'] = filer.mobile_number
+        tax_return.save(update_fields=['data', 'pan'])
+    return redirect('itr:filing_section', return_id=tax_return.pk)
 
 
 def _get_return(request, return_id):
@@ -246,8 +349,6 @@ def _personal_info_initial(model):
         'state_code': addr['stateCode'],
         'pin_code': addr['pinCode'],
         'secondary_address_same_as_primary': pi['secondaryAddressSameAsPrimary'] or 'Y',
-        'return_file_sec': model['filingStatus']['returnFileSec'],
-        'opt_out_of_new_regime': model['filingStatus']['optOutOfNewRegime'] or 'N',
         'orig_return_ack_no': model['filingStatus']['origReturnAckNo'],
         'orig_return_filed_date': model['filingStatus']['origReturnFiledDate'] or None,
         'orig_return_file_sec': model['filingStatus']['origReturnFileSec'],
@@ -287,8 +388,6 @@ def _apply_personal_info_form(model, cleaned):
     pi['secondaryAddress'] = dict(pi['primaryAddress']) if cleaned['secondary_address_same_as_primary'] == 'Y' else pi['secondaryAddress']
 
     fs = model['filingStatus']
-    fs['returnFileSec'] = cleaned['return_file_sec']
-    fs['optOutOfNewRegime'] = cleaned['opt_out_of_new_regime']
     fs['origReturnAckNo'] = cleaned.get('orig_return_ack_no') or ''
     fs['origReturnFiledDate'] = cleaned['orig_return_filed_date'].isoformat() if cleaned.get('orig_return_filed_date') else ''
     fs['origReturnFileSec'] = cleaned.get('orig_return_file_sec')
@@ -331,16 +430,6 @@ def _bank_accounts_initial(model):
     ]
 
 
-def _verify_ifsc_if_present(ifsc):
-    """A-107 verification for a single optional IFSC field (Schedule 80G /
-    80GGC rows carry an IFSC only for non-cash donations). Returns
-    (verified: bool|None, note: str) -- None means "not applicable"."""
-    if not ifsc:
-        return None, ''
-    lookup = ifsc_validator.validate(ifsc)
-    return lookup.status == 'VALID', lookup.note
-
-
 def _apply_bank_formset(model, formset):
     accounts = []
     for i, form in enumerate(formset):
@@ -352,19 +441,7 @@ def _apply_bank_formset(model, formset):
         existing = model.get('bankAccounts', [])
         prior = existing[i] if i < len(existing) else {}
         ifsc = cleaned['ifsc'].strip().upper()
-
-        # A-107: verify against the (stub) RBI/GIFT directory on every save so
-        # a changed IFSC is re-checked; fails closed per itr.services.ifsc.
         bank_name = cleaned.get('bank_name') or prior.get('bankName', '')
-        if ifsc == prior.get('ifsc') and prior.get('ifscVerified') is not None:
-            verified, note = prior.get('ifscVerified', False), prior.get('ifscVerificationNote', '')
-        else:
-            lookup = ifsc_validator.validate(ifsc)
-            verified, note = lookup.status == 'VALID', lookup.note
-            # §4.6: "Bank Name (auto-populated from IFSC)" -- once verified,
-            # the directory's name wins over free-text entry.
-            if verified and lookup.record:
-                bank_name = lookup.record.bank
 
         accounts.append({
             'id': prior.get('id') or f'bank-{i + 1}',
@@ -373,10 +450,24 @@ def _apply_bank_formset(model, formset):
             'accountNumber': cleaned['account_number'],
             'accountType': cleaned['account_type'],
             'nominateForRefund': cleaned['nominate_for_refund'],
-            'ifscVerified': verified,
-            'ifscVerificationNote': note,
         })
     model['bankAccounts'] = accounts
+
+
+def _regime_comparison(model):
+    """A neutral, no-recommendation side-by-side: tax payable under both
+    regimes, computed live from the same model (addendum §1.3's "a neutral
+    side-by-side calculator is acceptable" carve-out). Never shown as advice
+    -- just the two numbers."""
+    other = copy.deepcopy(model)
+    other['filingStatus']['optOutOfNewRegime'] = 'N' if model['filingStatus']['optOutOfNewRegime'] == 'Y' else 'Y'
+    this_computed = compute(model)
+    other_computed = compute(other)
+    by_regime = {this_computed['regime']: this_computed, other_computed['regime']: other_computed}
+    return {
+        'NEW': format_indian(by_regime['NEW']['totalTaxFeeAndInterest']),
+        'OLD': format_indian(by_regime['OLD']['totalTaxFeeAndInterest']),
+    }
 
 
 def personal_info(request, return_id):
@@ -429,10 +520,13 @@ def personal_info(request, return_id):
         form = PersonalInfoForm(initial=_personal_info_initial(model))
         formset = BankAccountFormSet(initial=_bank_accounts_initial(model), prefix='bank')
 
+    regime_comparison = _regime_comparison(model)
+
     return render(request, 'itr/personal_info.html', {
         'ay': model['ay'],
         'menu_items': build_menu_items(return_id, _screen_status(tax_return)),
         'page_title': 'Personal Information',
+        'regime_comparison': regime_comparison,
         'form': form,
         'formset': formset,
         'return_id': return_id,
@@ -467,6 +561,14 @@ def _gti_initial(model):
         'profits_in_lieu17_3': inc['profitsInLieu17_3'],
         'entertainment_allowance_16ii': inc['entertainmentAllowance16ii'],
         'professional_tax_16iii': inc['professionalTax16iii'],
+    }
+    h = inc['hra10_13A']
+    hra = {
+        'place_of_work': h['placeOfWork'],
+        'actual_hra_received': h['actualHraReceived'],
+        'actual_rent_paid': h['actualRentPaid'],
+        'basic_salary': h['basicSalary'],
+        'dearness_allowance': h['dearnessAllowance'],
     }
     exempt_allowances = [
         {'nature': r['nature'], 'amount': r['amount']}
@@ -503,10 +605,10 @@ def _gti_initial(model):
         }
         for r in inc.get('exemptIncome', [])
     ]
-    return salary, exempt_allowances, properties, other_sources, exempt_income
+    return salary, hra, exempt_allowances, properties, other_sources, exempt_income
 
 
-def _apply_gti_forms(model, salary_cleaned, allowance_formset, property_formset, other_source_formset, exempt_income_formset):
+def _apply_gti_forms(model, salary_cleaned, hra_cleaned, allowance_formset, property_formset, other_source_formset, exempt_income_formset):
     inc = model['income']
 
     inc['salary17_1'] = salary_cleaned['salary17_1']
@@ -514,6 +616,15 @@ def _apply_gti_forms(model, salary_cleaned, allowance_formset, property_formset,
     inc['profitsInLieu17_3'] = salary_cleaned['profits_in_lieu17_3']
     inc['entertainmentAllowance16ii'] = salary_cleaned['entertainment_allowance_16ii'] or 0
     inc['professionalTax16iii'] = salary_cleaned['professional_tax_16iii'] or 0
+
+    inc['hra10_13A'] = {
+        'placeOfWork': hra_cleaned.get('place_of_work') or '',
+        'actualHraReceived': hra_cleaned.get('actual_hra_received') or 0,
+        'actualRentPaid': hra_cleaned.get('actual_rent_paid') or 0,
+        'salary17_1': salary_cleaned['salary17_1'],
+        'basicSalary': hra_cleaned.get('basic_salary') or 0,
+        'dearnessAllowance': hra_cleaned.get('dearness_allowance') or 0,
+    }
 
     existing_allowances = inc.get('exemptAllowances', [])
     allowances = []
@@ -613,6 +724,7 @@ def gross_total_income(request, return_id):
 
     if request.method == 'POST':
         salary_form = SalaryForm(request.POST)
+        hra_form = HraForm(request.POST)
         allowance_formset = ExemptAllowanceFormSet(request.POST, prefix='allow')
         property_formset = HousePropertyFormSet(request.POST, prefix='hp')
         other_source_formset = OtherSourceFormSet(request.POST, prefix='os')
@@ -620,6 +732,7 @@ def gross_total_income(request, return_id):
 
         forms_valid = (
             salary_form.is_valid()
+            and hra_form.is_valid()
             and allowance_formset.is_valid()
             and property_formset.is_valid()
             and other_source_formset.is_valid()
@@ -632,7 +745,7 @@ def gross_total_income(request, return_id):
         elif forms_valid:
             before = copy.deepcopy(model)
             _apply_gti_forms(
-                model, salary_form.cleaned_data, allowance_formset,
+                model, salary_form.cleaned_data, hra_form.cleaned_data, allowance_formset,
                 property_formset, other_source_formset, exempt_income_formset,
             )
             _log_field_changes(tax_return, before, model, request.user if request.user.is_authenticated else None)
@@ -660,8 +773,9 @@ def gross_total_income(request, return_id):
                     return _ajax_saved_response(tax_return)
                 return redirect('itr:gross_total_income', return_id=return_id)
     else:
-        salary_initial, allowances_initial, properties_initial, other_sources_initial, exempt_income_initial = _gti_initial(model)
+        salary_initial, hra_initial, allowances_initial, properties_initial, other_sources_initial, exempt_income_initial = _gti_initial(model)
         salary_form = SalaryForm(initial=salary_initial)
+        hra_form = HraForm(initial=hra_initial)
         allowance_formset = ExemptAllowanceFormSet(initial=allowances_initial, prefix='allow')
         property_formset = HousePropertyFormSet(initial=properties_initial, prefix='hp')
         other_source_formset = OtherSourceFormSet(initial=other_sources_initial, prefix='os')
@@ -674,6 +788,7 @@ def gross_total_income(request, return_id):
         'menu_items': build_menu_items(return_id, _screen_status(tax_return)),
         'page_title': 'Gross Total Income',
         'salary_form': salary_form,
+        'hra_form': hra_form,
         'allowance_formset': allowance_formset,
         'property_formset': property_formset,
         'other_source_formset': other_source_formset,
@@ -970,8 +1085,6 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
         block = row_cleaned.get('block') or 'A'
         model_key = SCHEDULE_80G_BLOCK_MODEL_KEY.get(block, 'don100Percent')
         ifsc = (row_cleaned.get('ifsc') or '').strip().upper()
-        # A-107 also covers Schedule 80G IFSCs (non-cash donations).
-        ifsc_verified, ifsc_note = _verify_ifsc_if_present(ifsc)
         new_sched80g[model_key].append({
             'id': f'80g-{i + 1}',
             'name': row_cleaned.get('donee_name') or '',
@@ -982,8 +1095,6 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
             'donationOtherMode': row_cleaned.get('donation_other_mode') or 0,
             'transactionRefNo': row_cleaned.get('transaction_ref_no') or '',
             'ifsc': ifsc,
-            'ifscVerified': ifsc_verified,
-            'ifscVerificationNote': ifsc_note,
         })
     d['schedule80G'] = new_sched80g
     d['s80G'] = cleaned.get('s80G') or 0
@@ -1019,11 +1130,6 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
             continue
         prior = existing[i] if i < len(existing) else {}
         ifsc = (row_cleaned.get('ifsc') or '').strip().upper()
-        # A-107 also covers Schedule 80GGC IFSCs (non-cash donations).
-        if ifsc == prior.get('ifsc') and prior.get('ifscVerified') is not None:
-            ifsc_verified, ifsc_note = prior.get('ifscVerified'), prior.get('ifscVerificationNote', '')
-        else:
-            ifsc_verified, ifsc_note = _verify_ifsc_if_present(ifsc)
         rows.append({
             'id': prior.get('id') or f'ggc-{i + 1}',
             'donationDate': row_cleaned['donation_date'].isoformat() if row_cleaned.get('donation_date') else '',
@@ -1033,8 +1139,6 @@ def _apply_deductions_forms(model, cleaned, sched80c_fs, sched80ccc_fs, sched80d
             'donationOtherMode': row_cleaned.get('donation_other_mode') or 0,
             'transactionRefNo': row_cleaned.get('transaction_ref_no') or '',
             'ifsc': ifsc,
-            'ifscVerified': ifsc_verified,
-            'ifscVerificationNote': ifsc_note,
         })
     d['schedule80GGC'] = rows
     d['s80GGC'] = cleaned.get('s80GGC') or 0

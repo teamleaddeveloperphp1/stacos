@@ -81,19 +81,6 @@
     "source": "Tax payable Amount should be equal to \"Total Tax and Interest payable\" minus \"Total Taxes Paid\"."
   },
   {
-    "id": "A-107",
-    "screen": "PERSONAL_INFO",
-    "tier": 1,
-    "fields": ["bankAccounts", "deductions.schedule80G", "deductions.schedule80GGC"],
-    "appliesWhen": "count(allIfscKeys) > 0",
-    "assert": "not anyIfscUnverified",
-    "message": "Every IFSC entered under Bank Details, Schedule 80G and Schedule 80GGC must validate against the RBI database or the list of GIFT IFSC codes. At least one IFSC could not be verified.",
-    "remediation": "Correct the IFSC, or retry once the IFSC verification service is reachable. An unverified IFSC is never passed through.",
-    "deepLink": "PERSONAL_INFO#bankDetails",
-    "values": {},
-    "source": "IFSC under \"Bank Details\" Schedule 80G and in schedule 80GGC should match with the RBI database / GIFT IFSC codes."
-  },
-  {
     "id": "A-108",
     "screen": "TAX_PAID",
     "tier": 2,

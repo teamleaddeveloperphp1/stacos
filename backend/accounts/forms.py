@@ -142,12 +142,6 @@ class ChangePasswordForm(forms.Form):
         return confirm
 
 
-class LanguageForm(forms.Form):
-    preferred_language = forms.ChoiceField(
-        label=_('Language'), choices=[('en', 'English'), ('hi', 'हिन्दी')], widget=forms.RadioSelect,
-    )
-
-
 class MfaDisableForm(forms.Form):
     current_password = forms.CharField(label=_('Current password'), widget=forms.PasswordInput)
     code = forms.CharField(label=_('Current code'))
