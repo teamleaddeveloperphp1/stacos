@@ -1,9 +1,18 @@
-import re
-
-from django.core.validators import RegexValidator
 from django import forms
 
 from apps.itr.models import TaxFiler
+from apps.itr.validators import (
+    clean_aadhaar,
+    clean_bsr_code,
+    clean_email_address,
+    clean_ifsc,
+    clean_mobile_number,
+    clean_pan,
+    clean_pan_individual,
+    clean_pin_code,
+    clean_tan,
+    validate_challan_serial_no,
+)
 
 RETURN_FILE_SEC_CHOICES = [
     (11, '139(1) — on/before due date'),
@@ -92,6 +101,8 @@ class PersonalInfoForm(forms.Form):
 
     primary_mobile = forms.CharField(label='Primary mobile', max_length=10)
     secondary_mobile = forms.CharField(label='Secondary mobile', max_length=10, required=False)
+    # (max_length above is the UI's own choice; the schema's MobileNo pattern
+    # itself accepts 5-10 digits -- see validators.MOBILE_REGEX.)
     primary_email = forms.EmailField(label='Primary email', max_length=125)
     secondary_email = forms.EmailField(label='Secondary email', max_length=125, required=False)
 
@@ -151,7 +162,36 @@ class PersonalInfoForm(forms.Form):
     verification_capacity = forms.ChoiceField(label='Verification capacity', choices=CAPACITY_CHOICES, initial='S')
 
     def clean_pan(self):
-        return self.cleaned_data['pan'].strip().upper()
+        # PersonalInfo.PAN in the schema forces the 4th char to 'P' -- the
+        # taxpayer filing ITR-1 is always an individual.
+        return clean_pan_individual(self.cleaned_data['pan'])
+
+    def clean_representative_pan(self):
+        return clean_pan(self.cleaned_data['representative_pan'])
+
+    def clean_aadhaar(self):
+        return clean_aadhaar(self.cleaned_data['aadhaar'])
+
+    def clean_primary_mobile(self):
+        return clean_mobile_number(self.cleaned_data['primary_mobile'])
+
+    def clean_secondary_mobile(self):
+        return clean_mobile_number(self.cleaned_data['secondary_mobile'])
+
+    def clean_representative_mobile(self):
+        return clean_mobile_number(self.cleaned_data['representative_mobile'])
+
+    def clean_primary_email(self):
+        return clean_email_address(self.cleaned_data['primary_email'])
+
+    def clean_secondary_email(self):
+        return clean_email_address(self.cleaned_data['secondary_email'])
+
+    def clean_representative_email(self):
+        return clean_email_address(self.cleaned_data['representative_email'])
+
+    def clean_pin_code(self):
+        return clean_pin_code(self.cleaned_data['pin_code'])
 
     def clean(self):
         cleaned = super().clean()
@@ -190,15 +230,17 @@ class TaxFilerForm(forms.Form):
     last_name = forms.CharField(label='Last Name', max_length=60)
     gender = forms.ChoiceField(label='Gender', choices=[('', '--Select--')] + TaxFiler.GENDER_CHOICES)
     father_name = forms.CharField(label='Father Name', max_length=120)
-    mobile_number = forms.CharField(label='Mobile Number', max_length=10, validators=[RegexValidator(
-        r'^[0-9]{10}$', 'Enter a valid 10-digit mobile number.')],
+    mobile_number = forms.CharField(label='Mobile Number', max_length=10,
         help_text='WhatsApp number preferred - for updates to tax filing')
 
     def clean_pan(self):
-        pan = self.cleaned_data['pan'].strip().upper()
-        if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', pan):
-            raise forms.ValidationError('Enter a valid PAN (e.g. ABCDE1234F).')
-        return pan
+        return clean_pan_individual(self.cleaned_data['pan'])
+
+    def clean_mobile_number(self):
+        return clean_mobile_number(self.cleaned_data['mobile_number'])
+
+    def clean_email(self):
+        return clean_email_address(self.cleaned_data['email'])
 
 
 class BankAccountForm(forms.Form):
@@ -207,6 +249,9 @@ class BankAccountForm(forms.Form):
     account_number = forms.CharField(label='Account number', max_length=20)
     account_type = forms.ChoiceField(label='Account type', choices=ACCOUNT_TYPE_CHOICES, initial='SB')
     nominate_for_refund = forms.BooleanField(label='Nominate for refund', required=False)
+
+    def clean_ifsc(self):
+        return clean_ifsc(self.cleaned_data['ifsc'])
 
 
 BankAccountFormSet = forms.formset_factory(BankAccountForm, extra=1, can_delete=True)
@@ -390,6 +435,9 @@ class HousePropertyForm(forms.Form):
     interest_on_borrowed_capital = forms.IntegerField(
         label='Interest payable on borrowed capital', min_value=0, required=False, initial=0,
     )
+
+    def clean_pin_code(self):
+        return clean_pin_code(self.cleaned_data['pin_code'])
 
     def clean(self):
         cleaned = super().clean()
@@ -604,6 +652,12 @@ class Schedule80GRowForm(forms.Form):
     ifsc = forms.CharField(label='IFSC (for non-cash donations)', max_length=11, required=False)
     transaction_ref_no = forms.CharField(label='Transaction reference no.', max_length=30, required=False)
 
+    def clean_pan(self):
+        return clean_pan(self.cleaned_data['pan'])
+
+    def clean_ifsc(self):
+        return clean_ifsc(self.cleaned_data['ifsc'])
+
 
 Schedule80GFormSet = forms.formset_factory(Schedule80GRowForm, extra=1, can_delete=True)
 
@@ -613,6 +667,9 @@ class Schedule80GGARowForm(forms.Form):
     pan = forms.CharField(label='Donee PAN', max_length=10, required=False)
     donation_cash = forms.IntegerField(label='Donation — cash', min_value=0, required=False, initial=0)
     donation_other_mode = forms.IntegerField(label='Donation — other mode', min_value=0, required=False, initial=0)
+
+    def clean_pan(self):
+        return clean_pan(self.cleaned_data['pan'])
 
 
 Schedule80GGAFormSet = forms.formset_factory(Schedule80GGARowForm, extra=1, can_delete=True)
@@ -626,6 +683,12 @@ class Schedule80GGCRowForm(forms.Form):
     donation_other_mode = forms.IntegerField(label='Donation — other mode', min_value=0, required=False, initial=0)
     ifsc = forms.CharField(label='IFSC (for non-cash donations)', max_length=11, required=False)
     transaction_ref_no = forms.CharField(label='Transaction reference no.', max_length=30, required=False)
+
+    def clean_political_party_pan(self):
+        return clean_pan(self.cleaned_data['political_party_pan'])
+
+    def clean_ifsc(self):
+        return clean_ifsc(self.cleaned_data['ifsc'])
 
 
 Schedule80GGCFormSet = forms.formset_factory(Schedule80GGCRowForm, extra=1, can_delete=True)
@@ -654,9 +717,7 @@ Schedule80GGCFormSet = forms.formset_factory(Schedule80GGCRowForm, extra=1, can_
 # on its own) restricted to the literals facts.py's `_head_is_offered` switch
 # actually understands: SALARY / HP / OS / EXEMPT.
 
-TAN_VALIDATOR = RegexValidator(r'^[A-Z]{4}[0-9]{5}[A-Z]{1}$', 'Enter a valid TAN (e.g. MUMS27065D).')
-BSR_CODE_VALIDATOR = RegexValidator(r'^[0-9]{7}$', 'BSR code must be 7 digits.')
-CHALLAN_SERIAL_VALIDATOR = RegexValidator(r'^[0-9]{5}$', 'Challan serial number must be 5 digits.')
+CHALLAN_SERIAL_VALIDATOR = validate_challan_serial_no
 
 HEAD_OF_INCOME_CHOICES = [
     ('', '— Select —'),
@@ -668,13 +729,13 @@ HEAD_OF_INCOME_CHOICES = [
 
 
 class Tds1RowForm(forms.Form):
-    tan = forms.CharField(label='TAN of deductor', max_length=10, required=False, validators=[TAN_VALIDATOR])
+    tan = forms.CharField(label='TAN of deductor', max_length=10, required=False)
     deductor_name = forms.CharField(label='Name of deductor', max_length=120, required=False)
     income_chargeable_salary = forms.IntegerField(label='Income chargeable under Salaries', min_value=0, required=False, initial=0)
     total_tax_deducted = forms.IntegerField(label='Total tax deducted', min_value=0, required=False, initial=0)
 
     def clean_tan(self):
-        return self.cleaned_data['tan'].strip().upper()
+        return clean_tan(self.cleaned_data['tan'])
 
 
 Tds1FormSet = forms.formset_factory(Tds1RowForm, extra=1, can_delete=True)
@@ -719,7 +780,10 @@ class Tds3RowForm(forms.Form):
     head_of_income = forms.ChoiceField(label='Head of income', choices=HEAD_OF_INCOME_CHOICES, required=False)
 
     def clean_pan_of_tenant(self):
-        return self.cleaned_data['pan_of_tenant'].strip().upper()
+        return clean_pan(self.cleaned_data['pan_of_tenant'])
+
+    def clean_aadhaar_of_tenant(self):
+        return clean_aadhaar(self.cleaned_data['aadhaar_of_tenant'])
 
     def clean(self):
         cleaned = super().clean()
@@ -736,14 +800,14 @@ Tds3FormSet = forms.formset_factory(Tds3RowForm, extra=1, can_delete=True)
 
 
 class TcsRowForm(forms.Form):
-    tan = forms.CharField(label='TAN of collector', max_length=10, required=False, validators=[TAN_VALIDATOR])
+    tan = forms.CharField(label='TAN of collector', max_length=10, required=False)
     collector_name = forms.CharField(label='Name of collector', max_length=120, required=False)
     tax_collected = forms.IntegerField(label='Tax collected', min_value=0, required=False, initial=0)
     collected_year = forms.CharField(label='Year of tax collection', max_length=4, required=False)
     tcs_claimed_this_year = forms.IntegerField(label='TCS credit claimed this year', min_value=0, required=False, initial=0)
 
     def clean_tan(self):
-        return self.cleaned_data['tan'].strip().upper()
+        return clean_tan(self.cleaned_data['tan'])
 
     def clean(self):
         cleaned = super().clean()
@@ -757,10 +821,13 @@ TcsFormSet = forms.formset_factory(TcsRowForm, extra=1, can_delete=True)
 
 
 class ChallanRowForm(forms.Form):
-    bsr_code = forms.CharField(label='BSR code', max_length=7, required=False, validators=[BSR_CODE_VALIDATOR])
+    bsr_code = forms.CharField(label='BSR code', max_length=7, required=False)
     date_of_deposit = forms.DateField(label='Date of deposit', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     challan_serial_no = forms.CharField(label='Challan serial number', max_length=5, required=False, validators=[CHALLAN_SERIAL_VALIDATOR])
     amount = forms.IntegerField(label='Amount', min_value=0, required=False, initial=0)
+
+    def clean_bsr_code(self):
+        return clean_bsr_code(self.cleaned_data['bsr_code'])
 
 
 ChallanFormSet = forms.formset_factory(ChallanRowForm, extra=1, can_delete=True)
@@ -802,3 +869,7 @@ class VerificationForm(forms.Form):
     assessee_ver_pan = forms.CharField(label='PAN of person verifying', max_length=10)
     capacity = forms.ChoiceField(label='Capacity', choices=CAPACITY_CHOICES, initial='S')
     place = forms.CharField(label='Place', max_length=50)
+
+    def clean_assessee_ver_pan(self):
+        # Verification.Declaration.AssesseeVerPAN also forces 4th char 'P'.
+        return clean_pan_individual(self.cleaned_data['assessee_ver_pan'])

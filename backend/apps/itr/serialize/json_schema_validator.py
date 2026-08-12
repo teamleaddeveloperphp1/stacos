@@ -15,12 +15,30 @@ string patterns only.
 
 import multiprocessing
 from dataclasses import dataclass, field
+from multiprocessing import util as mp_util
 
 from jsonschema import Draft4Validator
 
 from .schema_order import CBDT_SCHEMA
 
 SCHEMA_VERSION = 'ITR-1_2026_Main_V1.1'
+
+# `multiprocessing.Process.start()` unconditionally flushes stdout/stderr
+# before forking. Under some WSGI setups (e.g. gunicorn with a broken error
+# log after a bad log rotation), that flush itself can raise OSError, which
+# would otherwise crash this request even though it has nothing to do with
+# the validation being performed. Make the flush best-effort.
+_orig_flush_std_streams = mp_util._flush_std_streams
+
+
+def _safe_flush_std_streams():
+    try:
+        _orig_flush_std_streams()
+    except OSError:
+        pass
+
+
+mp_util._flush_std_streams = _safe_flush_std_streams
 
 # Several of the CBDT schema's own `pattern` regexes (e.g. BankAccountNo,
 # LoanAccNoOfBankOrInstnRefNo, the email patterns) use nested quantifiers

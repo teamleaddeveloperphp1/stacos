@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.itr.model_blank import blank_return_model
+from apps.itr.validators import validate_mobile_number, validate_pan_individual
 
 
 def _default_return_data():
@@ -19,7 +20,7 @@ class TaxReturn(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tax_returns')
-    pan = models.CharField(max_length=10, blank=True)
+    pan = models.CharField(max_length=10, blank=True, validators=[validate_pan_individual])
     ay = models.CharField(max_length=7, default='2026-27')
     model_version = models.IntegerField(default=1)
     data = models.JSONField(default=_default_return_data)
@@ -42,6 +43,7 @@ class TaxReturn(models.Model):
         return f'ITR-1 {self.ay} · {self.pan or "(no PAN)"} · #{self.pk}'
 
     def save(self, *args, **kwargs):
+        self.pan = self.pan.upper()
         is_new = self._state.adding
         super().save(*args, **kwargs)
         if is_new and not self.data.get('returnId'):
@@ -69,7 +71,7 @@ class TaxFiler(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tax_filers')
-    pan = models.CharField(max_length=10)
+    pan = models.CharField(max_length=10, validators=[validate_pan_individual])
     first_name = models.CharField(max_length=60)
     middle_name = models.CharField(max_length=60, blank=True)
     last_name = models.CharField(max_length=60)
@@ -77,7 +79,7 @@ class TaxFiler(models.Model):
     email = models.EmailField(max_length=125)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
     father_name = models.CharField(max_length=120)
-    mobile_number = models.CharField(max_length=10)
+    mobile_number = models.CharField(max_length=10, validators=[validate_mobile_number])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,6 +90,10 @@ class TaxFiler(models.Model):
     def __str__(self):
         name = ' '.join(x for x in (self.first_name, self.middle_name, self.last_name) if x)
         return f'{name} · {self.pan}'
+
+    def save(self, *args, **kwargs):
+        self.pan = self.pan.upper()
+        super().save(*args, **kwargs)
 
 
 class AuditLogEntry(models.Model):
